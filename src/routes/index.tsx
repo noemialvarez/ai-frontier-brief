@@ -99,7 +99,7 @@ const THEMES = [
   "AI future of work",
 ] as const;
 
-function Home() {
+export function Home() {
   const { data } = useSuspenseQuery(articlesQO);
   const queryClient = useQueryClient();
 
