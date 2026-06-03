@@ -452,6 +452,15 @@ function Home() {
                     >
                       <Link2 className="mr-1 h-4 w-4" /> Copy link
                     </Button>
+                    {isPaywalledSource(src?.name) && (
+                      <span
+                        className="ml-auto text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded"
+                        style={{ color: "oklch(0.78 0.08 295)", backgroundColor: "oklch(0.97 0.02 295)" }}
+                        title="This source requires a paid subscription to read the full article."
+                      >
+                        Paywall
+                      </span>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
