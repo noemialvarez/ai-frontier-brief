@@ -128,7 +128,7 @@ async function summarizeAndTag(
         {
           role: "user",
           content: `Themes: ${THEMES.join(", ")}.\n\nItems (JSON array):\n${JSON.stringify(
-            items.map((i, idx) => ({ idx, title: i.title, snippet: i.description.slice(0, 600) }))
+            items.map((i, idx) => ({ idx, title: i.title, snippet: i.description.slice(0, 2000) }))
           )}`,
         },
       ],
