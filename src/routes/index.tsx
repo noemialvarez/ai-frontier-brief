@@ -82,6 +82,7 @@ function Home() {
   const addFn = useServerFn(addSource);
   const toggleFn = useServerFn(toggleSaved);
   const suggestFn = useServerFn(suggestNewSources);
+  const removeFn = useServerFn(removeSource);
 
   const [tab, setTab] = useState<"all" | "saved">("all");
   const [activeSources, setActiveSources] = useState<Set<string>>(new Set());
