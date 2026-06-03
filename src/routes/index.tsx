@@ -86,6 +86,7 @@ function Home() {
   const toggleFn = useServerFn(toggleSaved);
   const suggestFn = useServerFn(suggestNewSources);
   const removeFn = useServerFn(removeSource);
+  const irrelevantFn = useServerFn(markIrrelevant);
 
   const [tab, setTab] = useState<"all" | "saved">("all");
   const [activeSources, setActiveSources] = useState<Set<string>>(new Set());
@@ -358,6 +359,24 @@ function Home() {
                       }}
                     >
                       <Link2 className="mr-1 h-4 w-4" /> Copy link
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={async () => {
+                        try {
+                          await irrelevantFn({ data: { id: a.id } });
+                          toast.success("Marked as irrelevant", {
+                            description: "We'll filter out similar articles next time.",
+                          });
+                          invalidate();
+                        } catch (e: any) {
+                          toast.error(e.message ?? "Failed to mark as irrelevant");
+                        }
+                      }}
+                    >
+                      <ThumbsDown className="mr-1 h-4 w-4" /> Mark as irrelevant
                     </Button>
                   </div>
                 </CardContent>
