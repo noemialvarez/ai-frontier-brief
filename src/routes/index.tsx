@@ -419,7 +419,7 @@ export function Home() {
                       {a.title}
                     </a>
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{a.summary}</p>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{a.summary}</p>
                   {a.themes.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {a.themes.map((t) => (
