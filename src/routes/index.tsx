@@ -282,10 +282,11 @@ function Home() {
                     </Badge>
                     {a.published_at && (
                       <span>
-                        · {new Date(a.published_at).toLocaleDateString(undefined, {
+                        · {new Date(a.published_at).toLocaleDateString("en-US", {
                           year: "numeric",
                           month: "short",
                           day: "numeric",
+                          timeZone: "UTC",
                         })}
                       </span>
                     )}
