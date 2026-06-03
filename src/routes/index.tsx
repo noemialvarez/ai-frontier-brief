@@ -19,7 +19,24 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
-import appIcon from "@/assets/app-icon.png";
+import appIcon from "/favicon.svg?url";
+
+// Sources known to require a paid subscription / paywall to read full articles.
+const PAYWALL_PATTERNS: RegExp[] = [
+  /rundown ai/i,
+  /the information/i,
+  /stratechery/i,
+  /wall street journal|wsj/i,
+  /new york times|nyt/i,
+  /financial times|^ft$|ft\.com/i,
+  /bloomberg/i,
+  /the economist/i,
+  /economist\.com/i,
+  /platformer/i,
+  /^the atlantic/i,
+];
+const isPaywalledSource = (name?: string) =>
+  !!name && PAYWALL_PATTERNS.some((re) => re.test(name));
 
 import { Button } from "@/components/ui/button";
 import {
