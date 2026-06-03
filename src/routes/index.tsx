@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
-import appIcon from "/favicon.svg?url";
+import appIcon from "@/assets/app-icon.png";
 
 // Sources known to require a paid subscription / paywall to read full articles.
 const PAYWALL_PATTERNS: RegExp[] = [
