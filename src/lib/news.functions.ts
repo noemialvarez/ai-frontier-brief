@@ -72,11 +72,18 @@ function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-async function summarizeAndTag(items: { title: string; description: string }[]): Promise<
-  { summary: string; themes: string[]; isAIRelated: boolean }[]
-> {
+async function summarizeAndTag(
+  items: { title: string; description: string }[],
+  irrelevantExamples: string[] = []
+): Promise<{ summary: string; themes: string[]; isAIRelated: boolean }[]> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+  const examplesBlock = irrelevantExamples.length
+    ? `\n\nThe user has previously marked these article titles as IRRELEVANT. Treat anything thematically similar (same topic, same framing, same complaint) as isAIRelated=false:\n- ${irrelevantExamples
+        .slice(0, 40)
+        .join("\n- ")}`
+    : "";
 
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -87,7 +94,8 @@ async function summarizeAndTag(items: { title: string; description: string }[]):
         {
           role: "system",
           content:
-            "You analyze news headlines for an AI-news brief. For each item, write a crisp 2-3 sentence summary, tag relevant themes from the fixed list, and decide whether it belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering.",
+            "You analyze news headlines for an AI-news brief. For each item, write a crisp 2-3 sentence summary, tag relevant themes from the fixed list, and decide whether it belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering." +
+            examplesBlock,
         },
         {
           role: "user",
