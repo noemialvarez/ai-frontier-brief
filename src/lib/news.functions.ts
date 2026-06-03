@@ -86,7 +86,7 @@ async function summarizeAndTag(items: { title: string; description: string }[]):
         {
           role: "system",
           content:
-            "You analyze news headlines for an AI-news brief. For each item, write a crisp 2-3 sentence summary, tag relevant themes from the fixed list, and decide whether it is genuinely about AI (LLMs, agents, AI products/business, AI research). Mark off-topic items (general tech that isn't AI, sports, politics not about AI) as not AI-related.",
+            "You analyze news headlines for an AI-news brief. For each item, write a crisp 2-3 sentence summary, tag relevant themes from the fixed list, and decide whether it belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering.",
         },
         {
           role: "user",
