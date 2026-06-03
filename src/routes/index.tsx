@@ -263,6 +263,7 @@ function Home() {
               </span>
               {orderedSources.map((s) => {
                 const on = activeSources.has(s.id);
+                const canRemove = isSignedIn && (s as any).user_id === user?.id;
                 return (
                   <span
                     key={s.id}
@@ -279,31 +280,34 @@ function Home() {
                     >
                       {s.name}
                     </button>
-                    <button
-                      aria-label={`Remove ${s.name}`}
-                      onClick={async () => {
-                        if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
-                        try {
-                          await removeFn({ data: { id: s.id } });
-                          toast.success(`Removed "${s.name}"`);
-                          const n = new Set(activeSources);
-                          n.delete(s.id);
-                          setActiveSources(n);
-                          invalidate();
-                        } catch (e: any) {
-                          toast.error(e.message ?? "Failed to remove source");
+                    {canRemove && (
+                      <button
+                        aria-label={`Remove ${s.name}`}
+                        onClick={async () => {
+                          if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
+                          try {
+                            await removeFn({ data: { id: s.id } });
+                            toast.success(`Removed "${s.name}"`);
+                            const n = new Set(activeSources);
+                            n.delete(s.id);
+                            setActiveSources(n);
+                            invalidate();
+                          } catch (e: any) {
+                            toast.error(e.message ?? "Failed to remove source");
+                          }
+                        }}
+                        className={
+                          "px-1.5 py-1 border-l " +
+                          (on ? "border-white/30 hover:bg-white/10" : "border-border hover:bg-destructive/10 hover:text-destructive")
                         }
-                      }}
-                      className={
-                        "px-1.5 py-1 border-l " +
-                        (on ? "border-white/30 hover:bg-white/10" : "border-border hover:bg-destructive/10 hover:text-destructive")
-                      }
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </span>
                 );
               })}
+
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
