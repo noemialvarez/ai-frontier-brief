@@ -151,10 +151,20 @@ function Home() {
               )}
               Get most recent news
             </Button>
-            <Button variant="outline" size="lg" onClick={() => setAddOpen(true)}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setAddOpen(true)}
+              className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
+            >
               <Plus className="mr-2 h-4 w-4" /> Add new source
             </Button>
-            <Button variant="outline" size="lg" onClick={() => setSuggestOpen(true)}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setSuggestOpen(true)}
+              className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
+            >
               <Sparkles className="mr-2 h-4 w-4" /> Suggest new sources
             </Button>
           </div>
