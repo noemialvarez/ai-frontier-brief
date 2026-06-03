@@ -122,7 +122,7 @@ async function summarizeAndTag(
         {
           role: "system",
           content:
-            "You analyze news headlines for an AI-news brief. For each item, write a crisp 2-3 sentence summary, tag relevant themes from the fixed list, and decide whether it belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering." +
+            "You analyze news articles for an AI-news brief. For each item, write a thorough, informative summary of 5-8 sentences (roughly 120-200 words) that captures the key facts, context, what was announced or happened, who is involved, why it matters, and any notable numbers, quotes, or implications. Write in clear neutral prose — not bullet points, not a teaser. Use only the title and snippet provided; do not invent facts. Then tag relevant themes from the fixed list, and decide whether it belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering." +
             examplesBlock,
         },
         {
