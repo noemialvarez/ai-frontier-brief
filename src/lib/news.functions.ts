@@ -192,6 +192,37 @@ export const toggleSaved = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const removeSource = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // delete articles from this source first to keep the feed clean
+    await supabaseAdmin.from("articles").delete().eq("source_id", data.id);
+    const { error } = await supabaseAdmin.from("sources").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Keywords that exclude an article outright (moral panic / weapons / fears framing).
+const EXCLUDE_PATTERNS = [
+  /\bmoral(ity|s)?\b/i,
+  /\bethic(s|al)?\b/i,
+  /\bkiller drone/i,
+  /\bautonomous weapon/i,
+  /\blethal autonomous/i,
+  /\bweaponi[sz]/i,
+  /\bdoom(er|sday)?\b/i,
+  /\bexistential risk\b/i,
+  /\bfear(s|ed|ing)?\b.*\bAI\b/i,
+  /\bAI\b.*\bfear(s|ed|ing)?\b/i,
+  /\bcomplain(t|ts|ing)\b/i,
+];
+
+function isExcludedByKeywords(title: string, description: string): boolean {
+  const text = `${title}\n${description}`;
+  return EXCLUDE_PATTERNS.some((re) => re.test(text));
+}
+
 export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: sources, error } = await supabaseAdmin.from("sources").select("id, name, feed_url, kind");
@@ -207,21 +238,31 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
     published_at: string | null;
   }[] = [];
 
-  for (const src of sources) {
-    try {
-      const items = await parseFeed(src.feed_url, (src.kind as "rss" | "youtube") ?? "rss");
-      for (const it of items.slice(0, 20)) {
-        if (!it.link || !it.title) continue;
-        candidates.push({
-          source_id: src.id,
-          external_url: it.link,
-          title: stripHtml(it.title).slice(0, 500),
-          description: stripHtml(it.description ?? ""),
-          published_at: it.pubDate ? new Date(it.pubDate).toISOString() : null,
-        });
-      }
-    } catch (e: any) {
-      errors.push(`${src.name}: ${e.message ?? "fetch failed"}`);
+  // Fetch all feeds in parallel so one slow source doesn't time out the whole batch.
+  const feedResults = await Promise.allSettled(
+    sources.map((src) =>
+      parseFeed(src.feed_url, (src.kind as "rss" | "youtube") ?? "rss").then((items) => ({ src, items }))
+    )
+  );
+
+  for (const r of feedResults) {
+    if (r.status === "rejected") {
+      errors.push(`feed: ${r.reason?.message ?? "fetch failed"}`);
+      continue;
+    }
+    const { src, items } = r.value;
+    for (const it of items.slice(0, 15)) {
+      if (!it.link || !it.title) continue;
+      const title = stripHtml(it.title).slice(0, 500);
+      const description = stripHtml(it.description ?? "");
+      if (isExcludedByKeywords(title, description)) continue;
+      candidates.push({
+        source_id: src.id,
+        external_url: it.link,
+        title,
+        description,
+        published_at: it.pubDate ? new Date(it.pubDate).toISOString() : null,
+      });
     }
   }
 
