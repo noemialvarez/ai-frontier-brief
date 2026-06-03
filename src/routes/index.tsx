@@ -246,7 +246,7 @@ function Home() {
               })}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-wide font-semibold text-brand-turquoise mr-1">
+              <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
                 Themes
               </span>
               {THEMES.map((t) => {
