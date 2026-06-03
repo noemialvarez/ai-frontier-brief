@@ -146,7 +146,7 @@ async function summarizeAndTag(
                   items: {
                     type: "object",
                     properties: {
-                      summary: { type: "string", description: "5-8 sentence informative summary (~120-200 words) in neutral prose." },
+                      summary: { type: "string", description: "Thorough 12-18 sentence (~280-420 word) self-contained summary in 2-4 short paragraphs separated by \\n\\n." },
                       themes: {
                         type: "array",
                         items: { type: "string", enum: [...THEMES] },
