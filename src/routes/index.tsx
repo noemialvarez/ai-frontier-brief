@@ -12,6 +12,7 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
