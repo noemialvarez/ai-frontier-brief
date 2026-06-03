@@ -68,6 +68,7 @@ export type Database = {
           id: string
           kind: string
           name: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -75,6 +76,7 @@ export type Database = {
           id?: string
           kind?: string
           name: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -82,6 +84,43 @@ export type Database = {
           id?: string
           kind?: string
           name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_article_irrelevant: {
+        Row: {
+          article_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_article_saved: {
+        Row: {
+          article_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          user_id?: string
         }
         Relationships: []
       }

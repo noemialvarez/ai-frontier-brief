@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 // ---------- helpers ----------
@@ -19,6 +20,34 @@ type FeedItem = {
   description?: string;
   pubDate?: string;
 };
+
+/** Returns the authenticated user id from the request, or null if anonymous. */
+async function getOptionalUserId(): Promise<string | null> {
+  try {
+    const req = getRequest();
+    const authHeader = req?.headers?.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) return null;
+    const token = authHeader.slice(7);
+    if (!token) return null;
+    const { createClient } = await import("@supabase/supabase-js");
+    const sb = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } }
+    );
+    const { data, error } = await sb.auth.getClaims(token);
+    if (error || !data?.claims?.sub) return null;
+    return data.claims.sub as string;
+  } catch {
+    return null;
+  }
+}
+
+async function requireUserId(): Promise<string> {
+  const uid = await getOptionalUserId();
+  if (!uid) throw new Error("You must sign in to do that.");
+  return uid;
+}
 
 async function parseFeed(url: string, kind: "rss" | "youtube"): Promise<FeedItem[]> {
   const { XMLParser } = await import("fast-xml-parser");
@@ -41,7 +70,6 @@ async function parseFeed(url: string, kind: "rss" | "youtube"): Promise<FeedItem
     }));
   }
 
-  // RSS or Atom
   const channelItems = data?.rss?.channel?.item;
   if (channelItems) {
     const list = Array.isArray(channelItems) ? channelItems : [channelItems];
@@ -153,22 +181,55 @@ async function summarizeAndTag(
 
 // ---------- server functions ----------
 
+/**
+ * Returns articles + sources visible to the caller.
+ * Anonymous: only global sources (user_id IS NULL), no per-user state.
+ * Signed in: global sources + own sources; saved/irrelevant scoped to user.
+ */
 export const listArticles = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const [articlesRes, sourcesRes] = await Promise.all([
-    supabaseAdmin
-      .from("articles")
-      .select("id, source_id, external_url, title, summary, themes, published_at, fetched_at, saved")
-      .eq("irrelevant", false)
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .order("fetched_at", { ascending: false })
-      .order("id", { ascending: true })
-      .limit(500),
-    supabaseAdmin.from("sources").select("id, name, kind, feed_url").order("name"),
-  ]);
-  if (articlesRes.error) throw new Error(articlesRes.error.message);
+  const userId = await getOptionalUserId();
+
+  const sourcesQuery = supabaseAdmin.from("sources").select("id, name, kind, feed_url, user_id").order("name");
+  const sourcesRes = userId
+    ? await sourcesQuery.or(`user_id.is.null,user_id.eq.${userId}`)
+    : await sourcesQuery.is("user_id", null);
   if (sourcesRes.error) throw new Error(sourcesRes.error.message);
-  return { articles: articlesRes.data ?? [], sources: sourcesRes.data ?? [] };
+  const sources = sourcesRes.data ?? [];
+  const sourceIds = sources.map((s) => s.id);
+
+  if (sourceIds.length === 0) {
+    return { articles: [], sources, userId };
+  }
+
+  // Articles from visible sources, excluding the user's irrelevant marks.
+  let irrelevantIds = new Set<string>();
+  let savedIds = new Set<string>();
+  if (userId) {
+    const [irrRes, savRes] = await Promise.all([
+      supabaseAdmin.from("user_article_irrelevant").select("article_id").eq("user_id", userId),
+      supabaseAdmin.from("user_article_saved").select("article_id").eq("user_id", userId),
+    ]);
+    irrelevantIds = new Set((irrRes.data ?? []).map((r) => r.article_id));
+    savedIds = new Set((savRes.data ?? []).map((r) => r.article_id));
+  }
+
+  const articlesRes = await supabaseAdmin
+    .from("articles")
+    .select("id, source_id, external_url, title, summary, themes, published_at, fetched_at")
+    .in("source_id", sourceIds)
+    .eq("irrelevant", false)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("fetched_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(500);
+  if (articlesRes.error) throw new Error(articlesRes.error.message);
+
+  const articles = (articlesRes.data ?? [])
+    .filter((a) => !irrelevantIds.has(a.id))
+    .map((a) => ({ ...a, saved: savedIds.has(a.id) }));
+
+  return { articles, sources, userId };
 });
 
 export const addSource = createServerFn({ method: "POST" })
@@ -182,11 +243,13 @@ export const addSource = createServerFn({ method: "POST" })
       .parse(input)
   )
   .handler(async ({ data }) => {
+    const userId = await requireUserId();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("sources").insert({
       name: data.name,
       feed_url: data.feed_url,
       kind: data.kind,
+      user_id: userId,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -197,36 +260,64 @@ export const toggleSaved = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), saved: z.boolean() }).parse(input)
   )
   .handler(async ({ data }) => {
+    const userId = await requireUserId();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("articles").update({ saved: data.saved }).eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (data.saved) {
+      const { error } = await supabaseAdmin
+        .from("user_article_saved")
+        .upsert({ user_id: userId, article_id: data.id });
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin
+        .from("user_article_saved")
+        .delete()
+        .eq("user_id", userId)
+        .eq("article_id", data.id);
+      if (error) throw new Error(error.message);
+    }
     return { ok: true };
   });
 
 export const markIrrelevant = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    const userId = await requireUserId();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
-      .from("articles")
-      .update({ irrelevant: true, saved: false })
-      .eq("id", data.id);
+      .from("user_article_irrelevant")
+      .upsert({ user_id: userId, article_id: data.id });
     if (error) throw new Error(error.message);
+    // also remove from saved if present
+    await supabaseAdmin
+      .from("user_article_saved")
+      .delete()
+      .eq("user_id", userId)
+      .eq("article_id", data.id);
     return { ok: true };
   });
 
 export const removeSource = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    const userId = await requireUserId();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // delete articles from this source first to keep the feed clean
+    // Only allow removing sources the user owns.
+    const { data: src, error: sErr } = await supabaseAdmin
+      .from("sources")
+      .select("id, user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (sErr) throw new Error(sErr.message);
+    if (!src) throw new Error("Source not found");
+    if (src.user_id !== userId) {
+      throw new Error("This is a shared default source and can't be removed.");
+    }
     await supabaseAdmin.from("articles").delete().eq("source_id", data.id);
     const { error } = await supabaseAdmin.from("sources").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
-// Keywords that exclude an article outright (moral panic / weapons / fears framing).
 const EXCLUDE_PATTERNS = [
   /\bmoral(ity|s)?\b/i,
   /\bethic(s|al)?\b/i,
@@ -248,9 +339,16 @@ function isExcludedByKeywords(title: string, description: string): boolean {
 
 export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: sources, error } = await supabaseAdmin.from("sources").select("id, name, feed_url, kind");
-  if (error) throw new Error(error.message);
-  if (!sources || sources.length === 0) return { added: 0, skipped: 0, errors: [] as string[] };
+  const userId = await getOptionalUserId();
+
+  // Only fetch from sources visible to the caller.
+  const sourcesQuery = supabaseAdmin.from("sources").select("id, name, feed_url, kind, user_id");
+  const sRes = userId
+    ? await sourcesQuery.or(`user_id.is.null,user_id.eq.${userId}`)
+    : await sourcesQuery.is("user_id", null);
+  if (sRes.error) throw new Error(sRes.error.message);
+  const sources = sRes.data ?? [];
+  if (sources.length === 0) return { added: 0, skipped: 0, errors: [] as string[] };
 
   const errors: string[] = [];
   const candidates: {
@@ -261,7 +359,6 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
     published_at: string | null;
   }[] = [];
 
-  // Fetch all feeds in parallel so one slow source doesn't time out the whole batch.
   const withTimeout = <T,>(p: Promise<T>, ms: number, label: string) =>
     Promise.race<T>([
       p,
@@ -306,7 +403,6 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
 
   if (candidates.length === 0) return { added: 0, skipped: 0, errors };
 
-  // Dedupe vs DB (includes rows marked irrelevant so we don't re-add them)
   const urls = candidates.map((c) => c.external_url);
   const { data: existing } = await supabaseAdmin.from("articles").select("external_url").in("external_url", urls);
   const existingSet = new Set((existing ?? []).map((r) => r.external_url));
@@ -315,16 +411,19 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
 
   if (fresh.length === 0) return { added: 0, skipped, errors };
 
-  // Learn from titles the user has previously marked as irrelevant.
-  const { data: irrelevantRows } = await supabaseAdmin
-    .from("articles")
-    .select("title")
-    .eq("irrelevant", true)
-    .order("fetched_at", { ascending: false })
-    .limit(40);
-  const irrelevantExamples = (irrelevantRows ?? []).map((r) => r.title);
+  // Learn from this user's irrelevant marks (titles).
+  let irrelevantExamples: string[] = [];
+  if (userId) {
+    const { data: rows } = await supabaseAdmin
+      .from("user_article_irrelevant")
+      .select("article_id, articles(title)")
+      .eq("user_id", userId)
+      .limit(40);
+    irrelevantExamples = (rows ?? [])
+      .map((r: any) => r.articles?.title)
+      .filter((t: any): t is string => typeof t === "string");
+  }
 
-  // AI analysis in batches of 10
   let added = 0;
   for (let i = 0; i < fresh.length; i += 10) {
     const batch = fresh.slice(i, i + 10);
@@ -359,8 +458,13 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
 
 export const suggestNewSources = createServerFn({ method: "POST" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: existing } = await supabaseAdmin.from("sources").select("name, feed_url");
-  const existingNames = (existing ?? []).map((s) => s.name);
+  const userId = await getOptionalUserId();
+  const sourcesQuery = supabaseAdmin.from("sources").select("name, feed_url, user_id");
+  const existingRes = userId
+    ? await sourcesQuery.or(`user_id.is.null,user_id.eq.${userId}`)
+    : await sourcesQuery.is("user_id", null);
+  const existing = existingRes.data ?? [];
+  const existingNames = existing.map((s) => s.name);
 
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
@@ -447,8 +551,7 @@ export const suggestNewSources = createServerFn({ method: "POST" }).handler(asyn
     }[];
   };
 
-  // Filter out any that match existing URLs/names
-  const existingUrls = new Set((existing ?? []).map((s) => s.feed_url));
+  const existingUrls = new Set(existing.map((s) => s.feed_url));
   const existingNameSet = new Set(existingNames.map((n) => n.toLowerCase()));
   parsed.suggestions = parsed.suggestions.filter(
     (s) => !existingUrls.has(s.feed_url) && !existingNameSet.has(s.name.toLowerCase())

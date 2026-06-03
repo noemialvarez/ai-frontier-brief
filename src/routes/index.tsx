@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Bookmark,
@@ -9,12 +9,16 @@ import {
   ExternalLink,
   Link2,
   Loader2,
+  LogIn,
+  LogOut,
   Plus,
   RefreshCw,
   Sparkles,
   ThumbsDown,
   X,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/hooks/use-session";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -88,6 +92,9 @@ function Home() {
   const removeFn = useServerFn(removeSource);
   const irrelevantFn = useServerFn(markIrrelevant);
 
+  const { user } = useSession();
+  const isSignedIn = !!user;
+
   const [tab, setTab] = useState<"all" | "saved">("all");
   const [activeSources, setActiveSources] = useState<Set<string>>(new Set());
   const [activeThemes, setActiveThemes] = useState<Set<string>>(new Set());
@@ -95,6 +102,20 @@ function Home() {
   const [suggestOpen, setSuggestOpen] = useState(false);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
+
+  // Refetch when auth state changes so per-user state (saved/irrelevant/own sources) is correct.
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [queryClient]);
+
+  const requireAuth = (action: string) => {
+    toast.error("Please sign in", {
+      description: `You need to be signed in to ${action}.`,
+    });
+  };
 
   const fetchMut = useMutation({
     mutationFn: () => fetchFn(),
@@ -149,9 +170,44 @@ function Home() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
         <div className="mx-auto max-w-6xl px-6 py-8">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gradient-brand">
-            The AI Frontier Brief
-          </h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gradient-brand">
+              The AI Frontier Brief
+            </h1>
+            <div className="shrink-0">
+              {isSignedIn ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground hidden sm:inline">{user?.email}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      toast.success("Signed out");
+                    }}
+                  >
+                    <LogOut className="mr-1.5 h-3.5 w-3.5" /> Sign out
+                  </Button>
+                </div>
+              ) : (
+                <Button asChild variant="outline" size="sm" className="border-brand-turquoise">
+                  <Link to="/auth">
+                    <LogIn className="mr-1.5 h-3.5 w-3.5" /> Sign in
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </div>
+          {!isSignedIn && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              You're viewing the default feed.{" "}
+              <Link to="/auth" className="underline text-brand-turquoise font-medium">
+                Sign in
+              </Link>{" "}
+              to add your own sources, save articles, and tune the brief — your changes stay
+              private to your account.
+            </p>
+          )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button
               size="lg"
@@ -169,7 +225,7 @@ function Home() {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => setAddOpen(true)}
+              onClick={() => (isSignedIn ? setAddOpen(true) : requireAuth("add a source"))}
               className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
             >
               <Plus className="mr-2 h-4 w-4" /> Add new source
@@ -177,7 +233,7 @@ function Home() {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => setSuggestOpen(true)}
+              onClick={() => (isSignedIn ? setSuggestOpen(true) : requireAuth("get source suggestions"))}
               className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
             >
               <Sparkles className="mr-2 h-4 w-4" /> Suggest new sources
@@ -185,6 +241,7 @@ function Home() {
           </div>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -206,6 +263,7 @@ function Home() {
               </span>
               {orderedSources.map((s) => {
                 const on = activeSources.has(s.id);
+                const canRemove = isSignedIn && (s as any).user_id === user?.id;
                 return (
                   <span
                     key={s.id}
@@ -222,31 +280,34 @@ function Home() {
                     >
                       {s.name}
                     </button>
-                    <button
-                      aria-label={`Remove ${s.name}`}
-                      onClick={async () => {
-                        if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
-                        try {
-                          await removeFn({ data: { id: s.id } });
-                          toast.success(`Removed "${s.name}"`);
-                          const n = new Set(activeSources);
-                          n.delete(s.id);
-                          setActiveSources(n);
-                          invalidate();
-                        } catch (e: any) {
-                          toast.error(e.message ?? "Failed to remove source");
+                    {canRemove && (
+                      <button
+                        aria-label={`Remove ${s.name}`}
+                        onClick={async () => {
+                          if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
+                          try {
+                            await removeFn({ data: { id: s.id } });
+                            toast.success(`Removed "${s.name}"`);
+                            const n = new Set(activeSources);
+                            n.delete(s.id);
+                            setActiveSources(n);
+                            invalidate();
+                          } catch (e: any) {
+                            toast.error(e.message ?? "Failed to remove source");
+                          }
+                        }}
+                        className={
+                          "px-1.5 py-1 border-l " +
+                          (on ? "border-white/30 hover:bg-white/10" : "border-border hover:bg-destructive/10 hover:text-destructive")
                         }
-                      }}
-                      className={
-                        "px-1.5 py-1 border-l " +
-                        (on ? "border-white/30 hover:bg-white/10" : "border-border hover:bg-destructive/10 hover:text-destructive")
-                      }
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </span>
                 );
               })}
+
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
@@ -338,7 +399,11 @@ function Home() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => toggleMut.mutate({ id: a.id, saved: !a.saved })}
+                      onClick={() =>
+                        isSignedIn
+                          ? toggleMut.mutate({ id: a.id, saved: !a.saved })
+                          : requireAuth("save articles")
+                      }
                     >
                       {a.saved ? (
                         <>
@@ -365,6 +430,10 @@ function Home() {
                       variant="ghost"
                       className="text-muted-foreground hover:text-destructive"
                       onClick={async () => {
+                        if (!isSignedIn) {
+                          requireAuth("mark articles as irrelevant");
+                          return;
+                        }
                         try {
                           await irrelevantFn({ data: { id: a.id } });
                           toast.success("Marked as irrelevant", {
@@ -378,6 +447,7 @@ function Home() {
                     >
                       <ThumbsDown className="mr-1 h-4 w-4" /> Mark as irrelevant
                     </Button>
+
                   </div>
                 </CardContent>
               </Card>
