@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import appIcon from "@/assets/app-icon.png";
 
 import { Button } from "@/components/ui/button";
 import {
