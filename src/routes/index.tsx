@@ -19,7 +19,24 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
-import appIcon from "@/assets/app-icon.png";
+import appIcon from "/favicon.svg?url";
+
+// Sources known to require a paid subscription / paywall to read full articles.
+const PAYWALL_PATTERNS: RegExp[] = [
+  /rundown ai/i,
+  /the information/i,
+  /stratechery/i,
+  /wall street journal|wsj/i,
+  /new york times|nyt/i,
+  /financial times|^ft$|ft\.com/i,
+  /bloomberg/i,
+  /the economist/i,
+  /economist\.com/i,
+  /platformer/i,
+  /^the atlantic/i,
+];
+const isPaywalledSource = (name?: string) =>
+  !!name && PAYWALL_PATTERNS.some((re) => re.test(name));
 
 import { Button } from "@/components/ui/button";
 import {
@@ -435,6 +452,15 @@ function Home() {
                     >
                       <Link2 className="mr-1 h-4 w-4" /> Copy link
                     </Button>
+                    {isPaywalledSource(src?.name) && (
+                      <span
+                        className="ml-auto text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded"
+                        style={{ color: "oklch(0.78 0.08 295)", backgroundColor: "oklch(0.97 0.02 295)" }}
+                        title="This source requires a paid subscription to read the full article."
+                      >
+                        Paywall
+                      </span>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
