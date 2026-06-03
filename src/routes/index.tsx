@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Bookmark,
@@ -9,12 +9,16 @@ import {
   ExternalLink,
   Link2,
   Loader2,
+  LogIn,
+  LogOut,
   Plus,
   RefreshCw,
   Sparkles,
   ThumbsDown,
   X,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/hooks/use-session";
 
 import { Button } from "@/components/ui/button";
 import {
