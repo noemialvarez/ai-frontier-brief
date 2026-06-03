@@ -84,7 +84,7 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const articlesQO = queryOptions({
+export const articlesQO = queryOptions({
   queryKey: ["articles"],
   queryFn: () => listArticles(),
 });
