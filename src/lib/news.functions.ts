@@ -10,6 +10,7 @@ const THEMES = [
   "startups",
   "prompt engineering",
   "LLM news",
+  "AI future of work",
 ] as const;
 
 type FeedItem = {
@@ -239,15 +240,30 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
   }[] = [];
 
   // Fetch all feeds in parallel so one slow source doesn't time out the whole batch.
+  const withTimeout = <T,>(p: Promise<T>, ms: number, label: string) =>
+    Promise.race<T>([
+      p,
+      new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`${label} timed out after ${ms}ms`)), ms)),
+    ]);
+
   const feedResults = await Promise.allSettled(
-    sources.map((src) =>
-      parseFeed(src.feed_url, (src.kind as "rss" | "youtube") ?? "rss").then((items) => ({ src, items }))
-    )
+    sources.map(async (src) => {
+      try {
+        const items = await withTimeout(
+          parseFeed(src.feed_url, (src.kind as "rss" | "youtube") ?? "rss"),
+          15000,
+          src.name
+        );
+        return { src, items };
+      } catch (e: any) {
+        throw new Error(`${src.name}: ${e?.message ?? "fetch failed"}`);
+      }
+    })
   );
 
   for (const r of feedResults) {
     if (r.status === "rejected") {
-      errors.push(`feed: ${r.reason?.message ?? "fetch failed"}`);
+      errors.push(r.reason?.message ?? "fetch failed");
       continue;
     }
     const { src, items } = r.value;
