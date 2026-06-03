@@ -151,8 +151,10 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
     supabaseAdmin
       .from("articles")
       .select("id, source_id, external_url, title, summary, themes, published_at, fetched_at, saved")
+      .eq("irrelevant", false)
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("fetched_at", { ascending: false })
+      .order("id", { ascending: true })
       .limit(500),
     supabaseAdmin.from("sources").select("id, name, kind, feed_url").order("name"),
   ]);
@@ -189,6 +191,18 @@ export const toggleSaved = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("articles").update({ saved: data.saved }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const markIrrelevant = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("articles")
+      .update({ irrelevant: true, saved: false })
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
