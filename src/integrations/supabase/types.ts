@@ -19,6 +19,7 @@ export type Database = {
           external_url: string
           fetched_at: string
           id: string
+          irrelevant: boolean
           published_at: string | null
           saved: boolean
           source_id: string
@@ -30,6 +31,7 @@ export type Database = {
           external_url: string
           fetched_at?: string
           id?: string
+          irrelevant?: boolean
           published_at?: string | null
           saved?: boolean
           source_id: string
@@ -41,6 +43,7 @@ export type Database = {
           external_url?: string
           fetched_at?: string
           id?: string
+          irrelevant?: boolean
           published_at?: string | null
           saved?: boolean
           source_id?: string

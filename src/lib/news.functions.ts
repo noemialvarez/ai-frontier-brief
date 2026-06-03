@@ -72,11 +72,18 @@ function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-async function summarizeAndTag(items: { title: string; description: string }[]): Promise<
-  { summary: string; themes: string[]; isAIRelated: boolean }[]
-> {
+async function summarizeAndTag(
+  items: { title: string; description: string }[],
+  irrelevantExamples: string[] = []
+): Promise<{ summary: string; themes: string[]; isAIRelated: boolean }[]> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+  const examplesBlock = irrelevantExamples.length
+    ? `\n\nThe user has previously marked these article titles as IRRELEVANT. Treat anything thematically similar (same topic, same framing, same complaint) as isAIRelated=false:\n- ${irrelevantExamples
+        .slice(0, 40)
+        .join("\n- ")}`
+    : "";
 
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -87,7 +94,8 @@ async function summarizeAndTag(items: { title: string; description: string }[]):
         {
           role: "system",
           content:
-            "You analyze news headlines for an AI-news brief. For each item, write a crisp 2-3 sentence summary, tag relevant themes from the fixed list, and decide whether it belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering.",
+            "You analyze news headlines for an AI-news brief. For each item, write a crisp 2-3 sentence summary, tag relevant themes from the fixed list, and decide whether it belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering." +
+            examplesBlock,
         },
         {
           role: "user",
@@ -151,8 +159,10 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
     supabaseAdmin
       .from("articles")
       .select("id, source_id, external_url, title, summary, themes, published_at, fetched_at, saved")
+      .eq("irrelevant", false)
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("fetched_at", { ascending: false })
+      .order("id", { ascending: true })
       .limit(500),
     supabaseAdmin.from("sources").select("id, name, kind, feed_url").order("name"),
   ]);
@@ -189,6 +199,18 @@ export const toggleSaved = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("articles").update({ saved: data.saved }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const markIrrelevant = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("articles")
+      .update({ irrelevant: true, saved: false })
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -284,7 +306,7 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
 
   if (candidates.length === 0) return { added: 0, skipped: 0, errors };
 
-  // Dedupe vs DB
+  // Dedupe vs DB (includes rows marked irrelevant so we don't re-add them)
   const urls = candidates.map((c) => c.external_url);
   const { data: existing } = await supabaseAdmin.from("articles").select("external_url").in("external_url", urls);
   const existingSet = new Set((existing ?? []).map((r) => r.external_url));
@@ -293,12 +315,24 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
 
   if (fresh.length === 0) return { added: 0, skipped, errors };
 
+  // Learn from titles the user has previously marked as irrelevant.
+  const { data: irrelevantRows } = await supabaseAdmin
+    .from("articles")
+    .select("title")
+    .eq("irrelevant", true)
+    .order("fetched_at", { ascending: false })
+    .limit(40);
+  const irrelevantExamples = (irrelevantRows ?? []).map((r) => r.title);
+
   // AI analysis in batches of 10
   let added = 0;
   for (let i = 0; i < fresh.length; i += 10) {
     const batch = fresh.slice(i, i + 10);
     try {
-      const analyses = await summarizeAndTag(batch.map((b) => ({ title: b.title, description: b.description })));
+      const analyses = await summarizeAndTag(
+        batch.map((b) => ({ title: b.title, description: b.description })),
+        irrelevantExamples
+      );
       const toInsert = batch
         .map((b, idx) => ({ b, a: analyses[idx] }))
         .filter(({ a }) => a && a.isAIRelated)
