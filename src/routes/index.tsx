@@ -92,6 +92,9 @@ function Home() {
   const removeFn = useServerFn(removeSource);
   const irrelevantFn = useServerFn(markIrrelevant);
 
+  const { user } = useSession();
+  const isSignedIn = !!user;
+
   const [tab, setTab] = useState<"all" | "saved">("all");
   const [activeSources, setActiveSources] = useState<Set<string>>(new Set());
   const [activeThemes, setActiveThemes] = useState<Set<string>>(new Set());
@@ -99,6 +102,20 @@ function Home() {
   const [suggestOpen, setSuggestOpen] = useState(false);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
+
+  // Refetch when auth state changes so per-user state (saved/irrelevant/own sources) is correct.
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      queryClient.invalidateQueries({ queryKey: ["articles"] });
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [queryClient]);
+
+  const requireAuth = (action: string) => {
+    toast.error("Please sign in", {
+      description: `You need to be signed in to ${action}.`,
+    });
+  };
 
   const fetchMut = useMutation({
     mutationFn: () => fetchFn(),
