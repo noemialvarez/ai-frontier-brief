@@ -306,7 +306,7 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
 
   if (candidates.length === 0) return { added: 0, skipped: 0, errors };
 
-  // Dedupe vs DB
+  // Dedupe vs DB (includes rows marked irrelevant so we don't re-add them)
   const urls = candidates.map((c) => c.external_url);
   const { data: existing } = await supabaseAdmin.from("articles").select("external_url").in("external_url", urls);
   const existingSet = new Set((existing ?? []).map((r) => r.external_url));
@@ -315,12 +315,24 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
 
   if (fresh.length === 0) return { added: 0, skipped, errors };
 
+  // Learn from titles the user has previously marked as irrelevant.
+  const { data: irrelevantRows } = await supabaseAdmin
+    .from("articles")
+    .select("title")
+    .eq("irrelevant", true)
+    .order("fetched_at", { ascending: false })
+    .limit(40);
+  const irrelevantExamples = (irrelevantRows ?? []).map((r) => r.title);
+
   // AI analysis in batches of 10
   let added = 0;
   for (let i = 0; i < fresh.length; i += 10) {
     const batch = fresh.slice(i, i + 10);
     try {
-      const analyses = await summarizeAndTag(batch.map((b) => ({ title: b.title, description: b.description })));
+      const analyses = await summarizeAndTag(
+        batch.map((b) => ({ title: b.title, description: b.description })),
+        irrelevantExamples
+      );
       const toInsert = batch
         .map((b, idx) => ({ b, a: analyses[idx] }))
         .filter(({ a }) => a && a.isAIRelated)
