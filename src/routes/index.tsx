@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import appIcon from "@/assets/app-icon.png";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -171,9 +172,18 @@ function Home() {
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gradient-brand">
-              The AI Frontier Brief
-            </h1>
+            <div className="flex items-center gap-4">
+              <img
+                src={appIcon}
+                alt="AI Frontier Brief"
+                width={64}
+                height={64}
+                className="h-14 w-14 rounded-2xl shadow-md shrink-0"
+              />
+              <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gradient-brand">
+                The AI Frontier Brief
+              </h1>
+            </div>
             <div className="shrink-0">
               {isSignedIn ? (
                 <div className="flex items-center gap-2 text-sm">
