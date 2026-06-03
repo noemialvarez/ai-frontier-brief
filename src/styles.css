@@ -132,6 +132,26 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/* Brand tokens — The AI Frontier Brief */
+:root {
+  --brand-pink: oklch(0.74 0.21 5);
+  --brand-purple: oklch(0.55 0.27 295);
+  --brand-turquoise: oklch(0.78 0.15 190);
+  --gradient-brand: linear-gradient(
+    135deg,
+    var(--brand-pink) 0%,
+    var(--brand-purple) 50%,
+    var(--brand-turquoise) 100%
+  );
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px -12px oklch(0.55 0.27 295 / 0.15);
+}
+
+@theme inline {
+  --color-brand-pink: var(--brand-pink);
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-turquoise: var(--brand-turquoise);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
@@ -141,4 +161,15 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+}
+
+@utility text-gradient-brand {
+  background-image: var(--gradient-brand);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@utility bg-gradient-brand {
+  background-image: var(--gradient-brand);
 }
