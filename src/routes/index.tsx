@@ -12,6 +12,7 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  ThumbsDown,
   X,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ import {
   addSource,
   fetchLatestNews,
   listArticles,
+  markIrrelevant,
   removeSource,
   suggestNewSources,
   toggleSaved,
