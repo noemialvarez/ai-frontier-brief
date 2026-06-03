@@ -324,13 +324,13 @@ export const suggestNewSources = createServerFn({ method: "POST" }).handler(asyn
         {
           role: "system",
           content:
-            "You recommend high-signal RSS sources for an AI-news brief. Only suggest sources that publish an RSS/Atom or YouTube feed (Substacks, blogs, podcast feeds, YouTube channels, official tech blogs). Provide working canonical feed URLs when known (e.g. https://www.example.com/feed). For each, include 3 representative example article titles that would be the kind of content the source publishes (clearly illustrative, not live data). Avoid sources requiring login or paywalls (no NYT, no WSJ, no LinkedIn, no X). Avoid sources already in the user's list.",
+            "You recommend high-signal sources for an AI-news brief. Suggest a MIX of: written sources (Substacks, blogs, official tech blogs with RSS/Atom) AND podcast feeds (RSS feeds from Apple Podcasts/Overcast/podcast websites — anything with an enclosure-based RSS feed) AND YouTube channels (use the channel's RSS, e.g. https://www.youtube.com/feeds/videos.xml?channel_id=...). At least 2 of your 6 recommendations MUST be podcast feeds. For podcast feeds, the 3 example items should be illustrative EPISODE titles (and you may include a brief summary-style description that hints at what an episode would cover). Provide working canonical feed URLs. Avoid sources requiring login or paywalls (no NYT, no WSJ, no LinkedIn, no X). Avoid sources already in the user's list. Do NOT suggest sources whose primary angle is AI ethics/morality, public fears about AI, or autonomous weapons debates.",
         },
         {
           role: "user",
           content: `Themes to cover: ${THEMES.join(
             ", "
-          )}.\n\nSources already configured: ${existingNames.join(", ") || "(none)"}.\n\nReturn 6 fresh recommendations.`,
+          )}.\n\nSources already configured: ${existingNames.join(", ") || "(none)"}.\n\nReturn 6 fresh recommendations including at least 2 podcasts.`,
         },
       ],
       tools: [
