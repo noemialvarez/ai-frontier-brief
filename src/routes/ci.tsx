@@ -12,6 +12,7 @@ export const Route = createFileRoute("/ci")({
       },
     ],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(articlesQO),
   component: CiHome,
 });
 
