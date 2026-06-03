@@ -14,7 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      articles: {
+        Row: {
+          external_url: string
+          fetched_at: string
+          id: string
+          published_at: string | null
+          saved: boolean
+          source_id: string
+          summary: string
+          themes: string[]
+          title: string
+        }
+        Insert: {
+          external_url: string
+          fetched_at?: string
+          id?: string
+          published_at?: string | null
+          saved?: boolean
+          source_id: string
+          summary?: string
+          themes?: string[]
+          title: string
+        }
+        Update: {
+          external_url?: string
+          fetched_at?: string
+          id?: string
+          published_at?: string | null
+          saved?: boolean
+          source_id?: string
+          summary?: string
+          themes?: string[]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sources: {
+        Row: {
+          created_at: string
+          feed_url: string
+          id: string
+          kind: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          feed_url: string
+          id?: string
+          kind?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          feed_url?: string
+          id?: string
+          kind?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
