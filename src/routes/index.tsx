@@ -399,7 +399,11 @@ function Home() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => toggleMut.mutate({ id: a.id, saved: !a.saved })}
+                      onClick={() =>
+                        isSignedIn
+                          ? toggleMut.mutate({ id: a.id, saved: !a.saved })
+                          : requireAuth("save articles")
+                      }
                     >
                       {a.saved ? (
                         <>
@@ -426,6 +430,10 @@ function Home() {
                       variant="ghost"
                       className="text-muted-foreground hover:text-destructive"
                       onClick={async () => {
+                        if (!isSignedIn) {
+                          requireAuth("mark articles as irrelevant");
+                          return;
+                        }
                         try {
                           await irrelevantFn({ data: { id: a.id } });
                           toast.success("Marked as irrelevant", {
@@ -439,6 +447,7 @@ function Home() {
                     >
                       <ThumbsDown className="mr-1 h-4 w-4" /> Mark as irrelevant
                     </Button>
+
                   </div>
                 </CardContent>
               </Card>
