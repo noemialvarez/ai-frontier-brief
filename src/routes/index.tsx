@@ -72,6 +72,7 @@ const THEMES = [
   "startups",
   "prompt engineering",
   "LLM news",
+  "AI future of work",
 ] as const;
 
 function Home() {
@@ -174,7 +175,7 @@ function Home() {
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Tabs value={tab} onValueChange={(v) => setTab(v as "all" | "saved")}>
-            <TabsList>
+            <TabsList className="border border-brand-turquoise/40 bg-background">
               <TabsTrigger value="all">All news ({data.articles.length})</TabsTrigger>
               <TabsTrigger value="saved">
                 Saved ({data.articles.filter((a) => a.saved).length})
