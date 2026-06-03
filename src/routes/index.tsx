@@ -12,6 +12,7 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import {
   addSource,
   fetchLatestNews,
   listArticles,
+  removeSource,
   suggestNewSources,
   toggleSaved,
 } from "@/lib/news.functions";
@@ -80,6 +82,7 @@ function Home() {
   const addFn = useServerFn(addSource);
   const toggleFn = useServerFn(toggleSaved);
   const suggestFn = useServerFn(suggestNewSources);
+  const removeFn = useServerFn(removeSource);
 
   const [tab, setTab] = useState<"all" | "saved">("all");
   const [activeSources, setActiveSources] = useState<Set<string>>(new Set());
@@ -148,10 +151,20 @@ function Home() {
               )}
               Get most recent news
             </Button>
-            <Button variant="outline" size="lg" onClick={() => setAddOpen(true)}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setAddOpen(true)}
+              className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
+            >
               <Plus className="mr-2 h-4 w-4" /> Add new source
             </Button>
-            <Button variant="outline" size="lg" onClick={() => setSuggestOpen(true)}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setSuggestOpen(true)}
+              className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
+            >
               <Sparkles className="mr-2 h-4 w-4" /> Suggest new sources
             </Button>
           </div>
@@ -173,27 +186,57 @@ function Home() {
         {(data.sources.length > 0 || true) && (
           <div className="mt-5 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">Sources</span>
+              <span className="text-xs uppercase tracking-wide font-semibold text-brand-turquoise mr-1">
+                Sources
+              </span>
               {data.sources.map((s) => {
                 const on = activeSources.has(s.id);
                 return (
-                  <button
+                  <span
                     key={s.id}
-                    onClick={() => toggleSetItem(activeSources, s.id, setActiveSources)}
                     className={
-                      "rounded-full px-3 py-1 text-xs border transition " +
+                      "inline-flex items-center rounded-full text-xs border transition overflow-hidden " +
                       (on
                         ? "bg-gradient-brand text-white border-transparent"
                         : "bg-background hover:bg-muted")
                     }
                   >
-                    {s.name}
-                  </button>
+                    <button
+                      onClick={() => toggleSetItem(activeSources, s.id, setActiveSources)}
+                      className="px-3 py-1"
+                    >
+                      {s.name}
+                    </button>
+                    <button
+                      aria-label={`Remove ${s.name}`}
+                      onClick={async () => {
+                        if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
+                        try {
+                          await removeFn({ data: { id: s.id } });
+                          toast.success(`Removed "${s.name}"`);
+                          const n = new Set(activeSources);
+                          n.delete(s.id);
+                          setActiveSources(n);
+                          invalidate();
+                        } catch (e: any) {
+                          toast.error(e.message ?? "Failed to remove source");
+                        }
+                      }}
+                      className={
+                        "px-1.5 py-1 border-l " +
+                        (on ? "border-white/30 hover:bg-white/10" : "border-border hover:bg-destructive/10 hover:text-destructive")
+                      }
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
                 );
               })}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">Themes</span>
+              <span className="text-xs uppercase tracking-wide font-semibold text-brand-turquoise mr-1">
+                Themes
+              </span>
               {THEMES.map((t) => {
                 const on = activeThemes.has(t);
                 return (
@@ -239,10 +282,11 @@ function Home() {
                     </Badge>
                     {a.published_at && (
                       <span>
-                        · {new Date(a.published_at).toLocaleDateString(undefined, {
+                        · {new Date(a.published_at).toLocaleDateString("en-US", {
                           year: "numeric",
                           month: "short",
                           day: "numeric",
+                          timeZone: "UTC",
                         })}
                       </span>
                     )}
