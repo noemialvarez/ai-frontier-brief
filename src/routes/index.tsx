@@ -170,9 +170,44 @@ function Home() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
         <div className="mx-auto max-w-6xl px-6 py-8">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gradient-brand">
-            The AI Frontier Brief
-          </h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gradient-brand">
+              The AI Frontier Brief
+            </h1>
+            <div className="shrink-0">
+              {isSignedIn ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground hidden sm:inline">{user?.email}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      toast.success("Signed out");
+                    }}
+                  >
+                    <LogOut className="mr-1.5 h-3.5 w-3.5" /> Sign out
+                  </Button>
+                </div>
+              ) : (
+                <Button asChild variant="outline" size="sm" className="border-brand-turquoise">
+                  <Link to="/auth">
+                    <LogIn className="mr-1.5 h-3.5 w-3.5" /> Sign in
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </div>
+          {!isSignedIn && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              You're viewing the default feed.{" "}
+              <Link to="/auth" className="underline text-brand-turquoise font-medium">
+                Sign in
+              </Link>{" "}
+              to add your own sources, save articles, and tune the brief — your changes stay
+              private to your account.
+            </p>
+          )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button
               size="lg"
@@ -190,7 +225,7 @@ function Home() {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => setAddOpen(true)}
+              onClick={() => (isSignedIn ? setAddOpen(true) : requireAuth("add a source"))}
               className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
             >
               <Plus className="mr-2 h-4 w-4" /> Add new source
@@ -198,7 +233,7 @@ function Home() {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => setSuggestOpen(true)}
+              onClick={() => (isSignedIn ? setSuggestOpen(true) : requireAuth("get source suggestions"))}
               className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
             >
               <Sparkles className="mr-2 h-4 w-4" /> Suggest new sources
@@ -206,6 +241,7 @@ function Home() {
           </div>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
