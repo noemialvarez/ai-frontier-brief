@@ -124,6 +124,17 @@ function Home() {
     [data.sources]
   );
 
+  // Show AI House Davos in the 9th position (index 8) if present.
+  const orderedSources = useMemo(() => {
+    const arr = [...data.sources];
+    const idx = arr.findIndex((s) => /ai\s*house/i.test(s.name));
+    if (idx === -1) return arr;
+    const [aiHouse] = arr.splice(idx, 1);
+    const target = Math.min(8, arr.length);
+    arr.splice(target, 0, aiHouse);
+    return arr;
+  }, [data.sources]);
+
   const toggleSetItem = (set: Set<string>, val: string, setter: (s: Set<string>) => void) => {
     const n = new Set(set);
     if (n.has(val)) n.delete(val);
@@ -187,10 +198,10 @@ function Home() {
         {(data.sources.length > 0 || true) && (
           <div className="mt-5 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-wide font-semibold text-brand-turquoise mr-1">
+              <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
                 Sources
               </span>
-              {data.sources.map((s) => {
+              {orderedSources.map((s) => {
                 const on = activeSources.has(s.id);
                 return (
                   <span
