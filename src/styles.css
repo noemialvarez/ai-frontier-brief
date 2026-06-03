@@ -146,6 +146,23 @@
   --shadow-card: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px -12px oklch(0.55 0.27 295 / 0.15);
 }
 
+/* CI theme scope — overrides brand tokens with corporate identity colors:
+   primary #4564DA, accents #D6396B, #7048C1, #00848C */
+.theme-ci {
+  --brand-pink: oklch(0.58 0.21 5);        /* #D6396B */
+  --brand-purple: oklch(0.52 0.20 268);    /* #4564DA (primary) */
+  --brand-turquoise: oklch(0.55 0.10 207); /* #00848C */
+  --gradient-brand: linear-gradient(
+    135deg,
+    oklch(0.58 0.21 5) 0%,        /* #D6396B */
+    oklch(0.46 0.22 295) 45%,     /* #7048C1 */
+    oklch(0.52 0.20 268) 75%,     /* #4564DA */
+    oklch(0.55 0.10 207) 100%     /* #00848C */
+  );
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.04),
+    0 8px 24px -12px oklch(0.52 0.20 268 / 0.18);
+}
+
 @theme inline {
   --color-brand-pink: var(--brand-pink);
   --color-brand-purple: var(--brand-purple);

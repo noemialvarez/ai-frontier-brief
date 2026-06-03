@@ -84,7 +84,7 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const articlesQO = queryOptions({
+export const articlesQO = queryOptions({
   queryKey: ["articles"],
   queryFn: () => listArticles(),
 });
@@ -99,7 +99,7 @@ const THEMES = [
   "AI future of work",
 ] as const;
 
-function Home() {
+export function Home() {
   const { data } = useSuspenseQuery(articlesQO);
   const queryClient = useQueryClient();
 
@@ -201,7 +201,22 @@ function Home() {
                 The AI Frontier Brief
               </h1>
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 flex items-center gap-2">
+              <div className="hidden sm:flex items-center rounded-md border bg-background p-0.5 text-xs">
+                <Link
+                  to="/"
+                  activeOptions={{ exact: true }}
+                  className="px-2 py-1 rounded-sm text-muted-foreground [&.active]:bg-brand-purple/10 [&.active]:text-brand-purple [&.active]:font-medium"
+                >
+                  Default
+                </Link>
+                <Link
+                  to="/ci"
+                  className="px-2 py-1 rounded-sm text-muted-foreground [&.active]:bg-brand-purple/10 [&.active]:text-brand-purple [&.active]:font-medium"
+                >
+                  CI
+                </Link>
+              </div>
               {isSignedIn ? (
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground hidden sm:inline">{user?.email}</span>
