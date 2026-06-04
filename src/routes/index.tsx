@@ -8,7 +8,10 @@ import {
   Bookmark,
   BookmarkCheck,
   BookOpen,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
+  Filter,
   Link2,
   Loader2,
   LogIn,
@@ -124,6 +127,7 @@ export function Home() {
   const [contributorsOpen, setContributorsOpen] = useState(false);
   const [addPerspectiveOpen, setAddPerspectiveOpen] = useState(false);
   const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
 
@@ -268,6 +272,21 @@ export function Home() {
             >
               <Users className="mr-2 h-4 w-4" /> Add sources from Top Contributors
             </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                if (!isSignedIn) {
+                  requireAuth("view your saved articles");
+                  return;
+                }
+                setTab("saved");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
+            >
+              <BookmarkCheck className="mr-2 h-4 w-4" /> See your saved articles
+            </Button>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button
@@ -312,84 +331,104 @@ export function Home() {
           </Tabs>
         </div>
 
-        {(data.sources.length > 0 || true) && (
-          <div className="mt-5 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
-                Sources
-              </span>
-              {orderedSources.map((s) => {
-                const on = activeSources.has(s.id);
-                const canRemove = isSignedIn && (s as any).user_id === user?.id;
-                return (
-                  <span
-                    key={s.id}
-                    className={
-                      "inline-flex items-center rounded-full text-xs border transition overflow-hidden " +
-                      (on
-                        ? "bg-gradient-brand text-white border-transparent"
-                        : "bg-background hover:bg-muted")
-                    }
-                  >
-                    <button
-                      onClick={() => toggleSetItem(activeSources, s.id, setActiveSources)}
-                      className="px-3 py-1"
+        <div className="mt-5">
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            aria-expanded={showFilters}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {showFilters ? "Hide filters" : "Filter by source or theme"}
+            {showFilters ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+            {(activeSources.size > 0 || activeThemes.size > 0) && (
+              <Badge variant="secondary" className="ml-1 text-[10px]">
+                {activeSources.size + activeThemes.size} active
+              </Badge>
+            )}
+          </button>
+          {showFilters && (
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
+                  Sources
+                </span>
+                {orderedSources.map((s) => {
+                  const on = activeSources.has(s.id);
+                  const canRemove = isSignedIn && (s as any).user_id === user?.id;
+                  return (
+                    <span
+                      key={s.id}
+                      className={
+                        "inline-flex items-center rounded-full text-xs border transition overflow-hidden " +
+                        (on
+                          ? "bg-gradient-brand text-white border-transparent"
+                          : "bg-background hover:bg-muted")
+                      }
                     >
-                      {s.name}
-                    </button>
-                    {canRemove && (
                       <button
-                        aria-label={`Remove ${s.name}`}
-                        onClick={async () => {
-                          if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
-                          try {
-                            await removeFn({ data: { id: s.id } });
-                            toast.success(`Removed "${s.name}"`);
-                            const n = new Set(activeSources);
-                            n.delete(s.id);
-                            setActiveSources(n);
-                            invalidate();
-                          } catch (e: any) {
-                            toast.error(e.message ?? "Failed to remove source");
-                          }
-                        }}
-                        className={
-                          "px-1.5 py-1 border-l " +
-                          (on ? "border-white/30 hover:bg-white/10" : "border-border hover:bg-destructive/10 hover:text-destructive")
-                        }
+                        onClick={() => toggleSetItem(activeSources, s.id, setActiveSources)}
+                        className="px-3 py-1"
                       >
-                        <X className="h-3 w-3" />
+                        {s.name}
                       </button>
-                    )}
-                  </span>
-                );
-              })}
-
+                      {canRemove && (
+                        <button
+                          aria-label={`Remove ${s.name}`}
+                          onClick={async () => {
+                            if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
+                            try {
+                              await removeFn({ data: { id: s.id } });
+                              toast.success(`Removed "${s.name}"`);
+                              const n = new Set(activeSources);
+                              n.delete(s.id);
+                              setActiveSources(n);
+                              invalidate();
+                            } catch (e: any) {
+                              toast.error(e.message ?? "Failed to remove source");
+                            }
+                          }}
+                          className={
+                            "px-1.5 py-1 border-l " +
+                            (on ? "border-white/30 hover:bg-white/10" : "border-border hover:bg-destructive/10 hover:text-destructive")
+                          }
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
+                  Themes
+                </span>
+                {THEMES.map((t) => {
+                  const on = activeThemes.has(t);
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => toggleSetItem(activeThemes, t, setActiveThemes)}
+                      className={
+                        "rounded-full px-3 py-1 text-xs border transition capitalize " +
+                        (on
+                          ? "bg-gradient-brand text-white border-transparent"
+                          : "bg-background hover:bg-muted")
+                      }
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
-                Themes
-              </span>
-              {THEMES.map((t) => {
-                const on = activeThemes.has(t);
-                return (
-                  <button
-                    key={t}
-                    onClick={() => toggleSetItem(activeThemes, t, setActiveThemes)}
-                    className={
-                      "rounded-full px-3 py-1 text-xs border transition capitalize " +
-                      (on
-                        ? "bg-gradient-brand text-white border-transparent"
-                        : "bg-background hover:bg-muted")
-                    }
-                  >
-                    {t}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <section className="mt-8 grid gap-4">
           {filtered.length === 0 && (

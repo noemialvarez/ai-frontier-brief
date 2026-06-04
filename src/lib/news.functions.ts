@@ -229,10 +229,18 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
     .limit(500);
   if (articlesRes.error) throw new Error(articlesRes.error.message);
 
+  const sevenDaysAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const articles = (articlesRes.data ?? [])
     .filter((a) => !irrelevantIds.has(a.id))
     .filter((a) => isLikelyEnglish(a.title) && isLikelyEnglish(a.summary ?? ""))
-    .map((a) => ({ ...a, saved: savedIds.has(a.id) }));
+    .map((a) => ({ ...a, saved: savedIds.has(a.id) }))
+    .filter((a) => {
+      if (a.saved) return true;
+      const t = a.published_at
+        ? new Date(a.published_at).getTime()
+        : new Date(a.fetched_at).getTime();
+      return Number.isFinite(t) && t >= sevenDaysAgoMs;
+    });
 
   return { articles, sources, userId };
 });
