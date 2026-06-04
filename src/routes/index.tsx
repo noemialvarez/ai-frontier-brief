@@ -231,7 +231,7 @@ export function Home() {
             </div>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            Welcome to our curated brief on the latest in AI — a concise <strong>summary</strong> of the most important <strong>news</strong>, insights, and developments. You're viewing the default feed.
+            Welcome to our curated brief on the latest in AI — a concise <strong>summary</strong> of the most important <strong>news</strong>, insights, and developments.{!isSignedIn && <> You're viewing the default feed.</>}
             {!isSignedIn && (
               <>
                 <br />
