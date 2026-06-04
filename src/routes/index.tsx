@@ -110,7 +110,6 @@ export function Home() {
   const addFn = useServerFn(addSource);
   const addPerspectiveFn = useServerFn(addPerspectiveSource);
   const toggleFn = useServerFn(toggleSaved);
-  const suggestFn = useServerFn(suggestNewSources);
   const contributorsFn = useServerFn(listContributorSources);
   const removeFn = useServerFn(removeSource);
   const irrelevantFn = useServerFn(markIrrelevant);
@@ -122,7 +121,6 @@ export function Home() {
   const [activeSources, setActiveSources] = useState<Set<string>>(new Set());
   const [activeThemes, setActiveThemes] = useState<Set<string>>(new Set());
   const [addOpen, setAddOpen] = useState(false);
-  const [suggestOpen, setSuggestOpen] = useState(false);
   const [contributorsOpen, setContributorsOpen] = useState(false);
   const [addPerspectiveOpen, setAddPerspectiveOpen] = useState(false);
   const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
