@@ -58,6 +58,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import {
+  addPerspectiveSource,
   addSource,
   fetchLatestNews,
   listArticles,
