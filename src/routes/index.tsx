@@ -280,12 +280,14 @@ export function Home() {
           </div>
           <div className="mt-3">
             <Button
+              asChild
               variant="ghost"
               size="sm"
-              onClick={() => setPerspectivesOpen(true)}
               className="text-brand-purple hover:text-brand-purple hover:bg-brand-purple/10"
             >
-              <BookOpen className="mr-2 h-4 w-4" /> Research & Perspectives from Influential AI Voices
+              <Link to="/perspectives">
+                <BookOpen className="mr-2 h-4 w-4" /> Research & Perspectives from Influential AI Voices
+              </Link>
             </Button>
           </div>
         </div>
@@ -579,11 +581,6 @@ export function Home() {
         }}
       />
 
-      <PerspectivesDialog
-        open={perspectivesOpen}
-        onOpenChange={setPerspectivesOpen}
-        fetchPerspectives={() => perspectivesFn()}
-      />
     </div>
   );
 }
