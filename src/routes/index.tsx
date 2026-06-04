@@ -263,14 +263,6 @@ export function Home() {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => (isSignedIn ? setSuggestOpen(true) : requireAuth("get source suggestions"))}
-              className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
-            >
-              <Sparkles className="mr-2 h-4 w-4" /> Suggest new sources
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
               onClick={() => setContributorsOpen(true)}
               className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
             >
