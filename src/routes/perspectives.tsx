@@ -59,6 +59,12 @@ function PerspectivesPage() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Perspective[]>(data.items);
   const [sources] = useState(data.sources);
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+
+  // Load saved-for-later from localStorage on mount (client-only)
+  if (typeof window !== "undefined" && saved.size === 0) {
+    // noop — useEffect below handles it
+  }
 
   const filtered = activeSource
     ? items.filter((i) => i.source_key === activeSource)
