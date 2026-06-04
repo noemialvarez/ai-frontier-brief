@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  Bookmark,
+  BookmarkCheck,
   ExternalLink,
+  Link2,
   Loader2,
   RefreshCw,
 } from "lucide-react";
@@ -24,7 +27,7 @@ export const Route = createFileRoute("/perspectives")({
       {
         name: "description",
         content:
-          "Hand-picked deeper reads, talks, and papers from people shaping the field of AI.",
+          "Hand-picked deeper reads, talks, and papers from experts shaping the field of AI.",
       },
     ],
   }),
@@ -56,6 +59,44 @@ function PerspectivesPage() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Perspective[]>(data.items);
   const [sources] = useState(data.sources);
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("perspectives:saved");
+      if (raw) setSaved(new Set(JSON.parse(raw)));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const toggleSave = (url: string) => {
+    setSaved((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) {
+        next.delete(url);
+        toast.success("Removed from Saved for later");
+      } else {
+        next.add(url);
+        toast.success("Saved for later");
+      }
+      try {
+        localStorage.setItem("perspectives:saved", JSON.stringify(Array.from(next)));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  const copyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  };
 
   const filtered = activeSource
     ? items.filter((i) => i.source_key === activeSource)
@@ -88,7 +129,7 @@ function PerspectivesPage() {
             Research & Perspectives from Influential AI Voices
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Hand-picked deeper reads, talks, and papers from people shaping the field.
+            Hand-picked deeper reads, talks, and papers from experts shaping the field.
           </p>
         </div>
       </header>
@@ -210,11 +251,30 @@ function PerspectivesPage() {
                         </button>
                       </>
                     )}
-                    <div className="mt-3">
+                    <div className="mt-3 flex flex-wrap items-center gap-1">
                       <Button asChild size="sm" variant="ghost">
                         <a href={it.url} target="_blank" rel="noreferrer">
                           Open <ExternalLink className="ml-1 h-3.5 w-3.5" />
                         </a>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => toggleSave(it.url)}
+                        className={saved.has(it.url) ? "text-brand-purple" : ""}
+                      >
+                        {saved.has(it.url) ? (
+                          <>
+                            <BookmarkCheck className="mr-1 h-3.5 w-3.5" /> Saved
+                          </>
+                        ) : (
+                          <>
+                            <Bookmark className="mr-1 h-3.5 w-3.5" /> Save for later
+                          </>
+                        )}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => copyLink(it.url)}>
+                        <Link2 className="mr-1 h-3.5 w-3.5" /> Copy link
                       </Button>
                     </div>
                   </CardContent>
