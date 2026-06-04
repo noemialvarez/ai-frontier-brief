@@ -229,7 +229,7 @@ export function Home() {
           </div>
           {!isSignedIn && (
             <p className="mt-3 text-sm text-muted-foreground">
-              Welcome to our curated brief on the latest in AI. You're viewing the default feed.
+              Welcome to our curated brief on the latest in AI — a concise summary of the most important news, insights, and developments. You're viewing the default feed.
               <br />
               <Link to="/auth" className="underline text-brand-turquoise font-medium">
                 Sign in
@@ -532,6 +532,8 @@ export function Home() {
           })}
         </section>
       </main>
+
+      <ScrollToTop />
 
       <AddSourceDialog
         open={addOpen}
