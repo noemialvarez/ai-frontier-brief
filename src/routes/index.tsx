@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   Bookmark,
   BookmarkCheck,
+  BookOpen,
   ExternalLink,
   Link2,
   Loader2,
@@ -15,6 +16,7 @@ import {
   RefreshCw,
   Sparkles,
   ThumbsDown,
+  Users,
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
