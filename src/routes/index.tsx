@@ -191,7 +191,7 @@ export function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
+      <header className="border-b bg-background/80 backdrop-blur md:sticky md:top-0 z-10">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
