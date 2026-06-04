@@ -272,6 +272,21 @@ export function Home() {
             >
               <Users className="mr-2 h-4 w-4" /> Add sources from Top Contributors
             </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                if (!isSignedIn) {
+                  requireAuth("view your saved articles");
+                  return;
+                }
+                setTab("saved");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
+            >
+              <BookmarkCheck className="mr-2 h-4 w-4" /> See your saved articles
+            </Button>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button
