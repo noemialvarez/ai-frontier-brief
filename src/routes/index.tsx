@@ -456,18 +456,6 @@ export function Home() {
                       </>
                     );
                   })()}
-                  {a.themes.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {a.themes.map((t) => (
-                        <span
-                          key={t}
-                          className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded bg-muted text-muted-foreground"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Button asChild size="sm" variant="ghost">
                       <a href={a.external_url} target="_blank" rel="noreferrer">
