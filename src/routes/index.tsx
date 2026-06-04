@@ -427,7 +427,35 @@ export function Home() {
                       {a.title}
                     </a>
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{a.summary}</p>
+                  {(() => {
+                    const expanded = expandedSummaries.has(a.id);
+                    return (
+                      <>
+                        <p
+                          className={
+                            "mt-2 text-sm text-muted-foreground leading-relaxed whitespace-pre-line " +
+                            (expanded ? "" : "line-clamp-2")
+                          }
+                        >
+                          {a.summary}
+                        </p>
+                        {a.summary && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const n = new Set(expandedSummaries);
+                              if (expanded) n.delete(a.id);
+                              else n.add(a.id);
+                              setExpandedSummaries(n);
+                            }}
+                            className="mt-1 text-xs font-medium text-brand-purple hover:underline"
+                          >
+                            {expanded ? "Show less" : "Read the whole summary"}
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
                   {a.themes.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {a.themes.map((t) => (
