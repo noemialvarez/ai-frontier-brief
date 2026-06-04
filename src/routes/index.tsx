@@ -600,6 +600,20 @@ export function Home() {
         }}
       />
 
+      <AddPerspectiveDialog
+        open={addPerspectiveOpen}
+        onOpenChange={setAddPerspectiveOpen}
+        onSubmit={async (v) => {
+          try {
+            await addPerspectiveFn({ data: v });
+            toast.success(`Added “${v.name}” to Research & Perspectives`);
+            setAddPerspectiveOpen(false);
+          } catch (e: any) {
+            toast.error(e.message ?? "Failed to add perspective source");
+          }
+        }}
+      />
+
     </div>
   );
 }
