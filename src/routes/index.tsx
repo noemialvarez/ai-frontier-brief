@@ -234,9 +234,9 @@ export function Home() {
               <Link to="/auth" className="underline text-brand-turquoise font-medium">
                 Sign in
               </Link>{" "}
-              to add your own sources, save articles, and tune the brief — your changes stay
-              private to your account. Any new sources you add will be visible under{" "}
-              <span className="font-medium">Add sources from Top Contributors</span>.
+              to add your own sources, save articles, and personalise your brief. Your preferences
+              remain private, but sources you add can be shared anonymously with the community under{" "}
+              <span className="font-medium">Top Contributor Sources</span>.
             </p>
           )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
