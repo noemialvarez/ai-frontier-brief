@@ -22,12 +22,10 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [method, setMethod] = useState<"link" | "code">("link");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const navigate = useNavigate();
 
-  // If already signed in, bounce home.
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: "/", replace: true });
@@ -44,18 +42,14 @@ function AuthPage() {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: method === "link" ? {
+        options: {
           emailRedirectTo: window.location.origin,
           shouldCreateUser: true,
-        } : { shouldCreateUser: true },
+        },
       });
       if (error) throw error;
       setSent(true);
-      if (method === "link") {
-        toast.success("Check your inbox", { description: `We sent a sign-in link to ${email}.` });
-      } else {
-        toast.success("Code sent", { description: `We sent a one-time code to ${email}.` });
-      }
+      toast.success("Check your inbox", { description: `We sent an email to ${email}.` });
     } catch (err: any) {
       toast.error(err.message ?? "Failed to send");
     } finally {
@@ -90,25 +84,6 @@ function AuthPage() {
 
           {!sent ? (
             <form onSubmit={send} className="mt-6 space-y-3">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={method === "link" ? "default" : "outline"}
-                  className={method === "link" ? "bg-gradient-brand text-white flex-1" : "flex-1"}
-                  onClick={() => setMethod("link")}
-                >
-                  Magic link
-                </Button>
-                <Button
-                  type="button"
-                  variant={method === "code" ? "default" : "outline"}
-                  className={method === "code" ? "bg-gradient-brand text-white flex-1" : "flex-1"}
-                  onClick={() => setMethod("code")}
-                >
-                  One-time code
-                </Button>
-              </div>
-
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email address</Label>
                 <Input
@@ -126,22 +101,9 @@ function AuthPage() {
                 className="w-full bg-gradient-brand text-white"
               >
                 {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                {method === "link" ? "Send magic link" : "Send one-time code"}
+                Send sign-in email
               </Button>
             </form>
-          ) : method === "link" ? (
-            <div className="mt-6 rounded-md border border-brand-turquoise/40 bg-brand-turquoise/5 p-4 text-sm">
-              <div className="flex items-center gap-2 font-medium">
-                <Mail className="h-4 w-4" /> Check your email
-              </div>
-              <p className="mt-1 text-muted-foreground">
-                We sent a link to <span className="font-medium text-foreground">{email}</span>. Click it
-                to finish signing in.
-              </p>
-              <Button variant="ghost" className="mt-3" onClick={() => setSent(false)}>
-                Use a different email
-              </Button>
-            </div>
           ) : (
             <form onSubmit={verify} className="mt-6 space-y-3">
               <div className="rounded-md border border-brand-turquoise/40 bg-brand-turquoise/5 p-4 text-sm">
@@ -149,7 +111,8 @@ function AuthPage() {
                   <Mail className="h-4 w-4" /> Check your email
                 </div>
                 <p className="mt-1 text-muted-foreground">
-                  We sent a code to <span className="font-medium text-foreground">{email}</span>. Enter it below.
+                  We've sent an email to <span className="font-medium text-foreground">{email}</span>.
+                  Click the magic link or enter the code below:
                 </p>
               </div>
               <div className="space-y-1.5">
@@ -178,7 +141,7 @@ function AuthPage() {
                 className="w-full"
                 onClick={() => { setSent(false); setCode(""); }}
               >
-                Back
+                Use a different email
               </Button>
             </form>
           )}
