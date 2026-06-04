@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
+  ArrowUp,
   Bookmark,
   BookmarkCheck,
   BookOpen,
@@ -61,7 +62,6 @@ import {
   fetchLatestNews,
   listArticles,
   listContributorSources,
-  listPerspectives,
   markIrrelevant,
   removeSource,
   suggestNewSources,
@@ -112,7 +112,6 @@ export function Home() {
   const toggleFn = useServerFn(toggleSaved);
   const suggestFn = useServerFn(suggestNewSources);
   const contributorsFn = useServerFn(listContributorSources);
-  const perspectivesFn = useServerFn(listPerspectives);
   const removeFn = useServerFn(removeSource);
   const irrelevantFn = useServerFn(markIrrelevant);
 
@@ -125,7 +124,6 @@ export function Home() {
   const [addOpen, setAddOpen] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [contributorsOpen, setContributorsOpen] = useState(false);
-  const [perspectivesOpen, setPerspectivesOpen] = useState(false);
   const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
