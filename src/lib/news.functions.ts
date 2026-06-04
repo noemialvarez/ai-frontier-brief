@@ -190,7 +190,11 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const userId = await getOptionalUserId();
 
-  const sourcesQuery = supabaseAdmin.from("sources").select("id, name, kind, feed_url, user_id").order("name");
+  const sourcesQuery = supabaseAdmin
+    .from("sources")
+    .select("id, name, kind, feed_url, user_id")
+    .in("kind", ["rss", "youtube"])
+    .order("name");
   const sourcesRes = userId
     ? await sourcesQuery.or(`user_id.is.null,user_id.eq.${userId}`)
     : await sourcesQuery.is("user_id", null);
