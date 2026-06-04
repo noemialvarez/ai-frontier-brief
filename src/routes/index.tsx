@@ -269,9 +269,28 @@ export function Home() {
             >
               <Sparkles className="mr-2 h-4 w-4" /> Suggest new sources
             </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setContributorsOpen(true)}
+              className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
+            >
+              <Users className="mr-2 h-4 w-4" /> Add sources from Top Contributors
+            </Button>
+          </div>
+          <div className="mt-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPerspectivesOpen(true)}
+              className="text-brand-purple hover:text-brand-purple hover:bg-brand-purple/10"
+            >
+              <BookOpen className="mr-2 h-4 w-4" /> Research & Perspectives from Influential AI Voices
+            </Button>
           </div>
         </div>
       </header>
+
 
 
       <main className="mx-auto max-w-6xl px-6 py-8">
