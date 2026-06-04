@@ -669,24 +669,40 @@ async function fetchKarenHaoClips(): Promise<FeedItem[]> {
   const html = await res.text();
   const items: FeedItem[] = [];
   const seen = new Set<string>();
-  // Anchor tags with external https hrefs and inner text
-  const linkRe = /<a\b[^>]*href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = linkRe.exec(html))) {
-    const url = m[1];
-    const inner = stripHtml(m[2]).trim();
-    if (!inner || inner.length < 10) continue;
+
+  // Each clip is typically wrapped in a <p> like:
+  //   <p><a href="...">Title</a>, <em>Publication</em>, Month Year.</p>
+  // Walk paragraph-by-paragraph so we can keep the surrounding context
+  // (publication + date + any blurb) as the summary.
+  const blockRe = /<(p|li|div)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  const linkRe = /<a\b[^>]*href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/i;
+
+  let b: RegExpExecArray | null;
+  while ((b = blockRe.exec(html))) {
+    const blockHtml = b[2];
+    const linkMatch = blockHtml.match(linkRe);
+    if (!linkMatch) continue;
+    const url = linkMatch[1];
+    const title = stripHtml(linkMatch[2]).trim();
+    if (!title || title.length < 8) continue;
     if (url.includes("karendhao.com") || url.includes("squarespace")) continue;
     if (seen.has(url)) continue;
     seen.add(url);
-    // Try to capture nearby year, e.g. "</a>, 2025."
-    const tail = html.slice(linkRe.lastIndex, linkRe.lastIndex + 40);
-    const yearMatch = tail.match(/(\d{4})/);
+
+    // Use the whole block (minus the title link) as the summary context —
+    // typically publication name + date + occasional blurb.
+    const fullText = stripHtml(blockHtml).replace(/\s+/g, " ").trim();
+    let summary = fullText.replace(title, "").replace(/^[\s,.\-–—:]+/, "").trim();
+    // Strip a leading orphan punctuation if any
+    summary = summary.replace(/^[,.\-–—:]\s*/, "");
+    if (summary.length > 600) summary = summary.slice(0, 600).trim() + "…";
+
+    const yearMatch = fullText.match(/\b(19|20)\d{2}\b/);
     items.push({
-      title: inner,
+      title,
       link: url,
-      description: "",
-      pubDate: yearMatch ? `${yearMatch[1]}-01-01T00:00:00Z` : undefined,
+      description: summary || `Published piece by Karen Hao${yearMatch ? ` (${yearMatch[0]})` : ""}.`,
+      pubDate: yearMatch ? `${yearMatch[0]}-01-01T00:00:00Z` : undefined,
     });
   }
   return items;
