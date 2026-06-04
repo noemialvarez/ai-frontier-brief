@@ -92,11 +92,11 @@ export const articlesQO = queryOptions({
 const THEMES = [
   "hands-on tips",
   "agentic AI",
-  "new business models",
-  "startups",
   "prompt engineering",
-  "LLM news",
   "AI future of work",
+  "LLM news",
+  "startups",
+  "new business models",
 ] as const;
 
 export function Home() {
