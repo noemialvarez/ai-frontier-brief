@@ -281,7 +281,7 @@ export function Home() {
               <Users className="mr-2 h-4 w-4" /> Add sources from Top Contributors
             </Button>
           </div>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button
               asChild
               variant="ghost"
@@ -291,6 +291,20 @@ export function Home() {
               <Link to="/perspectives">
                 <BookOpen className="mr-2 h-4 w-4" /> Research & Perspectives from Influential AI Voices
               </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (!isSignedIn) {
+                  requireAuth("add a Research & Perspectives source");
+                  return;
+                }
+                setAddPerspectiveOpen(true);
+              }}
+              className="text-brand-purple hover:text-brand-purple hover:bg-brand-purple/10"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Research & Perspectives from Influential AI Voices
             </Button>
           </div>
         </div>
