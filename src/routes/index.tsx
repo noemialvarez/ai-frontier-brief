@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
+  ArrowUp,
   Bookmark,
   BookmarkCheck,
   BookOpen,
@@ -61,7 +62,6 @@ import {
   fetchLatestNews,
   listArticles,
   listContributorSources,
-  listPerspectives,
   markIrrelevant,
   removeSource,
   suggestNewSources,
@@ -112,7 +112,6 @@ export function Home() {
   const toggleFn = useServerFn(toggleSaved);
   const suggestFn = useServerFn(suggestNewSources);
   const contributorsFn = useServerFn(listContributorSources);
-  const perspectivesFn = useServerFn(listPerspectives);
   const removeFn = useServerFn(removeSource);
   const irrelevantFn = useServerFn(markIrrelevant);
 
@@ -125,7 +124,6 @@ export function Home() {
   const [addOpen, setAddOpen] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [contributorsOpen, setContributorsOpen] = useState(false);
-  const [perspectivesOpen, setPerspectivesOpen] = useState(false);
   const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
@@ -231,7 +229,7 @@ export function Home() {
           </div>
           {!isSignedIn && (
             <p className="mt-3 text-sm text-muted-foreground">
-              Welcome to our curated brief on the latest in AI. You're viewing the default feed.
+              Welcome to our curated brief on the latest in AI — a concise summary of the most important news, insights, and developments. You're viewing the default feed.
               <br />
               <Link to="/auth" className="underline text-brand-turquoise font-medium">
                 Sign in
@@ -282,12 +280,14 @@ export function Home() {
           </div>
           <div className="mt-3">
             <Button
+              asChild
               variant="ghost"
               size="sm"
-              onClick={() => setPerspectivesOpen(true)}
               className="text-brand-purple hover:text-brand-purple hover:bg-brand-purple/10"
             >
-              <BookOpen className="mr-2 h-4 w-4" /> Research & Perspectives from Influential AI Voices
+              <Link to="/perspectives">
+                <BookOpen className="mr-2 h-4 w-4" /> Research & Perspectives from Influential AI Voices
+              </Link>
             </Button>
           </div>
         </div>
@@ -533,6 +533,8 @@ export function Home() {
         </section>
       </main>
 
+      <ScrollToTop />
+
       <AddSourceDialog
         open={addOpen}
         onOpenChange={setAddOpen}
@@ -581,12 +583,29 @@ export function Home() {
         }}
       />
 
-      <PerspectivesDialog
-        open={perspectivesOpen}
-        onOpenChange={setPerspectivesOpen}
-        fetchPerspectives={() => perspectivesFn()}
-      />
     </div>
+  );
+}
+
+function ScrollToTop() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 400);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="fixed bottom-6 right-6 z-50 inline-flex items-center justify-center rounded-full bg-gradient-brand text-white shadow-lg hover:opacity-90 transition-opacity p-3"
+      aria-label="Scroll to top"
+    >
+      <ArrowUp className="h-5 w-5" />
+    </button>
   );
 }
 
@@ -907,191 +926,6 @@ function ContributorSourcesDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-type Perspective = {
-  source_key: string;
-  source_label: string;
-  source_link: string;
-  title: string;
-  url: string;
-  summary: string;
-  published_at: string | null;
-};
-
-function PerspectivesDialog({
-  open,
-  onOpenChange,
-  fetchPerspectives,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  fetchPerspectives: () => Promise<{
-    items: Perspective[];
-    sources: { key: string; label: string; link: string }[];
-  }>;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<Perspective[]>([]);
-  const [sources, setSources] = useState<{ key: string; label: string; link: string }[]>([]);
-  const [activeSource, setActiveSource] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const r = await fetchPerspectives();
-      setItems(r.items);
-      setSources(r.sources);
-    } catch (e: any) {
-      toast.error(e.message ?? "Failed to load perspectives");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filtered = activeSource ? items.filter((i) => i.source_key === activeSource) : items;
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (o && items.length === 0) void load();
-      }}
-    >
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Research & Perspectives from Influential AI Voices</DialogTitle>
-          <DialogDescription>
-            Hand-picked deeper reads, talks, and papers from people shaping the field.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
-            Sources
-          </span>
-          <button
-            onClick={() => setActiveSource(null)}
-            className={
-              "rounded-full px-3 py-1 text-xs border transition " +
-              (activeSource === null
-                ? "bg-gradient-brand text-white border-transparent"
-                : "bg-background hover:bg-muted")
-            }
-          >
-            All
-          </button>
-          {sources.map((s) => {
-            const on = activeSource === s.key;
-            return (
-              <button
-                key={s.key}
-                onClick={() => setActiveSource(on ? null : s.key)}
-                className={
-                  "rounded-full px-3 py-1 text-xs border transition " +
-                  (on
-                    ? "bg-gradient-brand text-white border-transparent"
-                    : "bg-background hover:bg-muted")
-                }
-              >
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <ScrollArea className="max-h-[60vh] pr-3">
-          {loading && (
-            <div className="flex items-center justify-center py-10 text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading perspectives…
-            </div>
-          )}
-          {!loading && filtered.length === 0 && (
-            <div className="py-10 text-center text-sm text-muted-foreground">
-              No items found for this source.
-            </div>
-          )}
-          <div className="space-y-3">
-            {filtered.map((it) => {
-              const isOpen = expanded.has(it.url);
-              return (
-                <div key={it.url} className="rounded-lg border p-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant="secondary" className="font-medium">
-                      {it.source_label}
-                    </Badge>
-                    {it.published_at && (
-                      <span>
-                        ·{" "}
-                        {new Date(it.published_at).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          timeZone: "UTC",
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="mt-2 text-base font-semibold leading-snug">
-                    <a href={it.url} target="_blank" rel="noreferrer" className="hover:underline">
-                      {it.title}
-                    </a>
-                  </h3>
-                  {it.summary && (
-                    <>
-                      <p
-                        className={
-                          "mt-2 text-sm text-muted-foreground leading-relaxed whitespace-pre-line " +
-                          (isOpen ? "" : "line-clamp-2")
-                        }
-                      >
-                        {it.summary}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const n = new Set(expanded);
-                          if (isOpen) n.delete(it.url);
-                          else n.add(it.url);
-                          setExpanded(n);
-                        }}
-                        className="mt-1 text-xs font-medium text-brand-purple hover:underline"
-                      >
-                        {isOpen ? "Show less" : "Read the whole summary"}
-                      </button>
-                    </>
-                  )}
-                  <div className="mt-3">
-                    <Button asChild size="sm" variant="ghost">
-                      <a href={it.url} target="_blank" rel="noreferrer">
-                        Open <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </ScrollArea>
-
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          <Button onClick={load} disabled={loading} variant="outline">
-            {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            Refresh
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
