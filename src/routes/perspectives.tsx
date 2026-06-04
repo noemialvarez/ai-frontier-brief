@@ -91,7 +91,7 @@ function PerspectivesPage() {
             Research & Perspectives from Influential AI Voices
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Hand-picked deeper reads, talks, and papers from people shaping the field.
+            Hand-picked deeper reads, talks, and papers from experts shaping the field.
           </p>
         </div>
       </header>
