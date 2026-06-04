@@ -61,10 +61,42 @@ function PerspectivesPage() {
   const [sources] = useState(data.sources);
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
-  // Load saved-for-later from localStorage on mount (client-only)
-  if (typeof window !== "undefined" && saved.size === 0) {
-    // noop — useEffect below handles it
-  }
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("perspectives:saved");
+      if (raw) setSaved(new Set(JSON.parse(raw)));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const toggleSave = (url: string) => {
+    setSaved((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) {
+        next.delete(url);
+        toast.success("Removed from Saved for later");
+      } else {
+        next.add(url);
+        toast.success("Saved for later");
+      }
+      try {
+        localStorage.setItem("perspectives:saved", JSON.stringify(Array.from(next)));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  const copyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  };
 
   const filtered = activeSource
     ? items.filter((i) => i.source_key === activeSource)
