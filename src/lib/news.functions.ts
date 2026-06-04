@@ -590,3 +590,96 @@ export const listContributorSources = createServerFn({ method: "GET" }).handler(
   }
   return { suggestions: Array.from(map.values()).sort((a, b) => b.contributors - a.contributors) };
 });
+
+/**
+ * Fetches articles/videos/papers from a small curated set of influential AI voices.
+ * Used by the "Research & Perspectives" view.
+ */
+const PERSPECTIVE_SOURCES = [
+  {
+    key: "ai-house-davos",
+    label: "AI House Davos",
+    kind: "youtube" as const,
+    // Channel ID resolved at runtime from https://www.youtube.com/@AIHouseDavos
+    handle: "AIHouseDavos",
+    link: "https://www.youtube.com/@AIHouseDavos",
+  },
+  {
+    key: "ilya-papers",
+    label: "Ilya Sutskever's 30 Foundational Papers",
+    kind: "rss" as const,
+    feed_url: "https://medium.com/feed/ilya-sutskevers-30-foundational-papers-of-ai",
+    link: "https://medium.com/ilya-sutskevers-30-foundational-papers-of-ai",
+  },
+];
+
+let _ytChannelIdCache: Record<string, string> = {};
+async function resolveYoutubeChannelId(handle: string): Promise<string | null> {
+  if (_ytChannelIdCache[handle]) return _ytChannelIdCache[handle];
+  try {
+    const res = await fetch(`https://www.youtube.com/@${handle}`, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AIFrontierBrief/1.0)" },
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const m = html.match(/"channelId":"(UC[\w-]+)"/) || html.match(/"externalId":"(UC[\w-]+)"/);
+    if (m?.[1]) {
+      _ytChannelIdCache[handle] = m[1];
+      return m[1];
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+export const listPerspectives = createServerFn({ method: "GET" }).handler(async () => {
+  const results: {
+    source_key: string;
+    source_label: string;
+    source_link: string;
+    title: string;
+    url: string;
+    summary: string;
+    published_at: string | null;
+  }[] = [];
+
+  for (const src of PERSPECTIVE_SOURCES) {
+    try {
+      let feedUrl: string | null = null;
+      if (src.kind === "youtube") {
+        const channelId = await resolveYoutubeChannelId(src.handle!);
+        if (!channelId) continue;
+        feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+      } else {
+        feedUrl = src.feed_url!;
+      }
+      const items = await parseFeed(feedUrl, src.kind);
+      for (const it of items.slice(0, 20)) {
+        if (!it.title || !it.link) continue;
+        const summary = stripHtml(it.description ?? "").slice(0, 1200);
+        results.push({
+          source_key: src.key,
+          source_label: src.label,
+          source_link: src.link,
+          title: stripHtml(it.title),
+          url: it.link,
+          summary,
+          published_at: it.pubDate ? new Date(it.pubDate).toISOString() : null,
+        });
+      }
+    } catch (e) {
+      // skip failing source silently
+    }
+  }
+
+  // Sort newest first
+  results.sort((a, b) => {
+    const ta = a.published_at ? Date.parse(a.published_at) : 0;
+    const tb = b.published_at ? Date.parse(b.published_at) : 0;
+    return tb - ta;
+  });
+
+  const sources = PERSPECTIVE_SOURCES.map((s) => ({ key: s.key, label: s.label, link: s.link }));
+  return { items: results, sources };
+});
