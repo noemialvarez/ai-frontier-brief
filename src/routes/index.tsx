@@ -61,6 +61,7 @@ import {
   fetchLatestNews,
   listArticles,
   listContributorSources,
+  listPerspectives,
   markIrrelevant,
   removeSource,
   suggestNewSources,
@@ -111,6 +112,7 @@ export function Home() {
   const toggleFn = useServerFn(toggleSaved);
   const suggestFn = useServerFn(suggestNewSources);
   const contributorsFn = useServerFn(listContributorSources);
+  const perspectivesFn = useServerFn(listPerspectives);
   const removeFn = useServerFn(removeSource);
   const irrelevantFn = useServerFn(markIrrelevant);
 
@@ -234,9 +236,9 @@ export function Home() {
               <Link to="/auth" className="underline text-brand-turquoise font-medium">
                 Sign in
               </Link>{" "}
-              to add your own sources, save articles, and tune the brief — your changes stay
-              private to your account. Any new sources you add will be visible under{" "}
-              <span className="font-medium">Add sources from Top Contributors</span>.
+              to add your own sources, save articles, and personalise your brief. Your preferences
+              remain private, but sources you add can be shared anonymously with the community under{" "}
+              <span className="font-medium">Top Contributor Sources</span>.
             </p>
           )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -456,18 +458,6 @@ export function Home() {
                       </>
                     );
                   })()}
-                  {a.themes.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {a.themes.map((t) => (
-                        <span
-                          key={t}
-                          className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded bg-muted text-muted-foreground"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Button asChild size="sm" variant="ghost">
                       <a href={a.external_url} target="_blank" rel="noreferrer">
@@ -591,7 +581,11 @@ export function Home() {
         }}
       />
 
-      <PerspectivesDialog open={perspectivesOpen} onOpenChange={setPerspectivesOpen} />
+      <PerspectivesDialog
+        open={perspectivesOpen}
+        onOpenChange={setPerspectivesOpen}
+        fetchPerspectives={() => perspectivesFn()}
+      />
     </div>
   );
 }
@@ -919,53 +913,185 @@ function ContributorSourcesDialog({
   );
 }
 
+type Perspective = {
+  source_key: string;
+  source_label: string;
+  source_link: string;
+  title: string;
+  url: string;
+  summary: string;
+  published_at: string | null;
+};
+
 function PerspectivesDialog({
   open,
   onOpenChange,
+  fetchPerspectives,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  fetchPerspectives: () => Promise<{
+    items: Perspective[];
+    sources: { key: string; label: string; link: string }[];
+  }>;
 }) {
-  const links = [
-    {
-      title: "Karen Hao — Clips",
-      url: "https://karendhao.com/clips",
-      description: "Long-form journalism and clips from the author of Empire of AI.",
-    },
-    {
-      title: "Ilya Sutskever's 30 Foundational Papers of AI",
-      url: "https://medium.com/ilya-sutskevers-30-foundational-papers-of-ai",
-      description: "The reading list Ilya Sutskever recommends to understand modern AI.",
-    },
-  ];
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<Perspective[]>([]);
+  const [sources, setSources] = useState<{ key: string; label: string; link: string }[]>([]);
+  const [activeSource, setActiveSource] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetchPerspectives();
+      setItems(r.items);
+      setSources(r.sources);
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to load perspectives");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filtered = activeSource ? items.filter((i) => i.source_key === activeSource) : items;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (o && items.length === 0) void load();
+      }}
+    >
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Research & Perspectives from Influential AI Voices</DialogTitle>
           <DialogDescription>
-            Hand-picked deeper reads from people shaping the field.
+            Hand-picked deeper reads, talks, and papers from people shaping the field.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          {links.map((l) => (
-            <a
-              key={l.url}
-              href={l.url}
-              target="_blank"
-              rel="noreferrer"
-              className="block rounded-lg border p-4 hover:border-brand-purple hover:bg-brand-purple/5 transition"
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-brand-purple">{l.title}</span>
-                <ExternalLink className="h-3.5 w-3.5 text-brand-purple" />
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">{l.description}</p>
-            </a>
-          ))}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
+            Sources
+          </span>
+          <button
+            onClick={() => setActiveSource(null)}
+            className={
+              "rounded-full px-3 py-1 text-xs border transition " +
+              (activeSource === null
+                ? "bg-gradient-brand text-white border-transparent"
+                : "bg-background hover:bg-muted")
+            }
+          >
+            All
+          </button>
+          {sources.map((s) => {
+            const on = activeSource === s.key;
+            return (
+              <button
+                key={s.key}
+                onClick={() => setActiveSource(on ? null : s.key)}
+                className={
+                  "rounded-full px-3 py-1 text-xs border transition " +
+                  (on
+                    ? "bg-gradient-brand text-white border-transparent"
+                    : "bg-background hover:bg-muted")
+                }
+              >
+                {s.label}
+              </button>
+            );
+          })}
         </div>
+
+        <ScrollArea className="max-h-[60vh] pr-3">
+          {loading && (
+            <div className="flex items-center justify-center py-10 text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading perspectives…
+            </div>
+          )}
+          {!loading && filtered.length === 0 && (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              No items found for this source.
+            </div>
+          )}
+          <div className="space-y-3">
+            {filtered.map((it) => {
+              const isOpen = expanded.has(it.url);
+              return (
+                <div key={it.url} className="rounded-lg border p-4">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="secondary" className="font-medium">
+                      {it.source_label}
+                    </Badge>
+                    {it.published_at && (
+                      <span>
+                        ·{" "}
+                        {new Date(it.published_at).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          timeZone: "UTC",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mt-2 text-base font-semibold leading-snug">
+                    <a href={it.url} target="_blank" rel="noreferrer" className="hover:underline">
+                      {it.title}
+                    </a>
+                  </h3>
+                  {it.summary && (
+                    <>
+                      <p
+                        className={
+                          "mt-2 text-sm text-muted-foreground leading-relaxed whitespace-pre-line " +
+                          (isOpen ? "" : "line-clamp-2")
+                        }
+                      >
+                        {it.summary}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const n = new Set(expanded);
+                          if (isOpen) n.delete(it.url);
+                          else n.add(it.url);
+                          setExpanded(n);
+                        }}
+                        className="mt-1 text-xs font-medium text-brand-purple hover:underline"
+                      >
+                        {isOpen ? "Show less" : "Read the whole summary"}
+                      </button>
+                    </>
+                  )}
+                  <div className="mt-3">
+                    <Button asChild size="sm" variant="ghost">
+                      <a href={it.url} target="_blank" rel="noreferrer">
+                        Open <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+          <Button onClick={load} disabled={loading} variant="outline">
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Refresh
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
