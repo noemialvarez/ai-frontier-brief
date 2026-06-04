@@ -110,6 +110,7 @@ export function Home() {
   const addFn = useServerFn(addSource);
   const toggleFn = useServerFn(toggleSaved);
   const suggestFn = useServerFn(suggestNewSources);
+  const contributorsFn = useServerFn(listContributorSources);
   const removeFn = useServerFn(removeSource);
   const irrelevantFn = useServerFn(markIrrelevant);
 
@@ -121,6 +122,9 @@ export function Home() {
   const [activeThemes, setActiveThemes] = useState<Set<string>>(new Set());
   const [addOpen, setAddOpen] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const [contributorsOpen, setContributorsOpen] = useState(false);
+  const [perspectivesOpen, setPerspectivesOpen] = useState(false);
+  const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
 
