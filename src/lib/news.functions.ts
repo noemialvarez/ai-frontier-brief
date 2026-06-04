@@ -559,3 +559,34 @@ export const suggestNewSources = createServerFn({ method: "POST" }).handler(asyn
 
   return parsed;
 });
+
+/**
+ * Returns sources added by OTHER signed-in users (not global defaults, not the caller's own).
+ * Used to power the "Add sources from Top Contributors" inspiration list.
+ * Anonymous callers get all user-contributed sources.
+ */
+export const listContributorSources = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const userId = await getOptionalUserId();
+  let q = supabaseAdmin
+    .from("sources")
+    .select("id, name, kind, feed_url, user_id, created_at")
+    .not("user_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (userId) q = q.neq("user_id", userId);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+
+  // Dedupe by feed_url (multiple users may have added the same feed) — keep newest, count contributors.
+  const map = new Map<string, { name: string; feed_url: string; kind: string; contributors: number }>();
+  for (const s of data ?? []) {
+    const existing = map.get(s.feed_url);
+    if (existing) {
+      existing.contributors += 1;
+    } else {
+      map.set(s.feed_url, { name: s.name, feed_url: s.feed_url, kind: s.kind, contributors: 1 });
+    }
+  }
+  return { suggestions: Array.from(map.values()).sort((a, b) => b.contributors - a.contributors) };
+});
