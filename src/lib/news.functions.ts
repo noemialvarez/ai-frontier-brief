@@ -231,6 +231,7 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
 
   const articles = (articlesRes.data ?? [])
     .filter((a) => !irrelevantIds.has(a.id))
+    .filter((a) => isLikelyEnglish(a.title) && isLikelyEnglish(a.summary ?? ""))
     .map((a) => ({ ...a, saved: savedIds.has(a.id) }));
 
   return { articles, sources, userId };
