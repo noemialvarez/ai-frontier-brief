@@ -799,3 +799,175 @@ function SuggestSourcesDialog({
     </Dialog>
   );
 }
+
+function ContributorSourcesDialog({
+  open,
+  onOpenChange,
+  fetchContributors,
+  isSignedIn,
+  requireAuth,
+  existingFeedUrls,
+  onAdd,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  fetchContributors: () => Promise<{ suggestions: { name: string; feed_url: string; kind: string; contributors: number }[] }>;
+  isSignedIn: boolean;
+  requireAuth: () => void;
+  existingFeedUrls: Set<string>;
+  onAdd: (v: { name: string; feed_url: string; kind: "rss" | "youtube" }) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<{ name: string; feed_url: string; kind: string; contributors: number }[]>([]);
+  const [added, setAdded] = useState<Set<string>>(new Set());
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetchContributors();
+      setItems(r.suggestions);
+      setAdded(new Set());
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to load contributor sources");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (o) void load();
+      }}
+    >
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Sources from Top Contributors</DialogTitle>
+          <DialogDescription>
+            Discover what other readers have added to their personal brief. Get inspired by the
+            feeds your peers are following.
+          </DialogDescription>
+        </DialogHeader>
+
+        <ScrollArea className="max-h-[60vh] pr-3">
+          {loading && (
+            <div className="flex items-center justify-center py-10 text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading contributor sources…
+            </div>
+          )}
+          {!loading && items.length === 0 && (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              No contributor sources yet. Be the first to add one!
+            </div>
+          )}
+          <div className="space-y-3">
+            {items.map((s) => {
+              const alreadyInFeed = existingFeedUrls.has(s.feed_url);
+              const isAdded = added.has(s.feed_url) || alreadyInFeed;
+              return (
+                <div key={s.feed_url} className="rounded-lg border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-semibold">{s.name}</h4>
+                        <Badge variant="outline" className="text-[10px] uppercase">
+                          {s.kind}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {s.contributors} {s.contributors === 1 ? "contributor" : "contributors"}
+                        </Badge>
+                      </div>
+                      <a
+                        href={s.feed_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-xs text-muted-foreground underline truncate max-w-full"
+                      >
+                        {s.feed_url}
+                      </a>
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={isAdded}
+                      className={isAdded ? "" : "bg-gradient-brand text-white"}
+                      variant={isAdded ? "outline" : "default"}
+                      onClick={async () => {
+                        if (!isSignedIn) {
+                          requireAuth();
+                          return;
+                        }
+                        await onAdd({ name: s.name, feed_url: s.feed_url, kind: (s.kind as "rss" | "youtube") });
+                        setAdded((prev) => new Set(prev).add(s.feed_url));
+                      }}
+                    >
+                      {isAdded ? "Added" : "Add to my feed"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PerspectivesDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const links = [
+    {
+      title: "Karen Hao — Clips",
+      url: "https://karendhao.com/clips",
+      description: "Long-form journalism and clips from the author of Empire of AI.",
+    },
+    {
+      title: "Ilya Sutskever's 30 Foundational Papers of AI",
+      url: "https://medium.com/ilya-sutskevers-30-foundational-papers-of-ai",
+      description: "The reading list Ilya Sutskever recommends to understand modern AI.",
+    },
+  ];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Research & Perspectives from Influential AI Voices</DialogTitle>
+          <DialogDescription>
+            Hand-picked deeper reads from people shaping the field.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          {links.map((l) => (
+            <a
+              key={l.url}
+              href={l.url}
+              target="_blank"
+              rel="noreferrer"
+              className="block rounded-lg border p-4 hover:border-brand-purple hover:bg-brand-purple/5 transition"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-brand-purple">{l.title}</span>
+                <ExternalLink className="h-3.5 w-3.5 text-brand-purple" />
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{l.description}</p>
+            </a>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
