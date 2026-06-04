@@ -27,7 +27,7 @@ export const Route = createFileRoute("/perspectives")({
       {
         name: "description",
         content:
-          "Hand-picked deeper reads, talks, and papers from people shaping the field of AI.",
+          "Hand-picked deeper reads, talks, and papers from experts shaping the field of AI.",
       },
     ],
   }),
