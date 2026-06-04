@@ -110,6 +110,7 @@ export function Home() {
 
   const fetchFn = useServerFn(fetchLatestNews);
   const addFn = useServerFn(addSource);
+  const addPerspectiveFn = useServerFn(addPerspectiveSource);
   const toggleFn = useServerFn(toggleSaved);
   const suggestFn = useServerFn(suggestNewSources);
   const contributorsFn = useServerFn(listContributorSources);
@@ -125,6 +126,7 @@ export function Home() {
   const [addOpen, setAddOpen] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [contributorsOpen, setContributorsOpen] = useState(false);
+  const [addPerspectiveOpen, setAddPerspectiveOpen] = useState(false);
   const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
