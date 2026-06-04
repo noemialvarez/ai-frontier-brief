@@ -222,12 +222,14 @@ export function Home() {
           </div>
           {!isSignedIn && (
             <p className="mt-3 text-sm text-muted-foreground">
-              You're viewing the default feed.{" "}
+              Welcome to our curated brief on the latest in AI. You're viewing the default feed.
+              <br />
               <Link to="/auth" className="underline text-brand-turquoise font-medium">
                 Sign in
               </Link>{" "}
               to add your own sources, save articles, and tune the brief — your changes stay
-              private to your account.
+              private to your account. Any new sources you add will be visible under{" "}
+              <span className="font-medium">Add sources from Top Contributors</span>.
             </p>
           )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
