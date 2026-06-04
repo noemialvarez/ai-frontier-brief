@@ -555,20 +555,6 @@ export function Home() {
         }}
       />
 
-      <SuggestSourcesDialog
-        open={suggestOpen}
-        onOpenChange={setSuggestOpen}
-        fetchSuggestions={() => suggestFn()}
-        onAdd={async (v) => {
-          try {
-            await addFn({ data: v });
-            toast.success(`Added “${v.name}”`);
-            invalidate();
-          } catch (e: any) {
-            toast.error(e.message ?? "Failed to add source");
-          }
-        }}
-      />
 
       <ContributorSourcesDialog
         open={contributorsOpen}
