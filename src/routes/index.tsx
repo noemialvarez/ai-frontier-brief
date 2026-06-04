@@ -230,18 +230,20 @@ export function Home() {
               )}
             </div>
           </div>
-          {!isSignedIn && (
-            <p className="mt-3 text-sm text-muted-foreground">
-              Welcome to our curated brief on the latest in AI — a concise summary of the most important news, insights, and developments. You're viewing the default feed.
-              <br />
-              <Link to="/auth" className="underline text-brand-turquoise font-medium">
-                Sign in
-              </Link>{" "}
-              to add your own sources, save articles, and personalise your brief. Your preferences
-              remain private, but sources you add can be shared anonymously with the community under{" "}
-              <span className="font-medium">Top Contributor Sources</span>.
-            </p>
-          )}
+          <p className="mt-3 text-sm text-muted-foreground">
+            Welcome to our curated brief on the latest in AI — a concise <strong>summary</strong> of the most important <strong>news</strong>, insights, and developments. You're viewing the default feed.
+            {!isSignedIn && (
+              <>
+                <br />
+                <Link to="/auth" className="underline text-brand-turquoise font-medium">
+                  Sign in
+                </Link>{" "}
+                to add your own sources, save articles, and personalise your brief. Your preferences
+                remain private, but sources you add can be shared anonymously with the community under{" "}
+                <span className="font-medium">Top Contributor Sources</span>.
+              </>
+            )}
+          </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button
               size="lg"
