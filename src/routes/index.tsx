@@ -112,6 +112,7 @@ export function Home() {
   const toggleFn = useServerFn(toggleSaved);
   const suggestFn = useServerFn(suggestNewSources);
   const contributorsFn = useServerFn(listContributorSources);
+  const perspectivesFn = useServerFn(listPerspectives);
   const removeFn = useServerFn(removeSource);
   const irrelevantFn = useServerFn(markIrrelevant);
 
