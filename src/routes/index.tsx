@@ -15,7 +15,6 @@ import {
   LogOut,
   Plus,
   RefreshCw,
-  Sparkles,
   ThumbsDown,
   Users,
   X,
@@ -65,7 +64,6 @@ import {
   listContributorSources,
   markIrrelevant,
   removeSource,
-  suggestNewSources,
   toggleSaved,
 } from "@/lib/news.functions";
 
