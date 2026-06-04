@@ -580,7 +580,11 @@ export function Home() {
         }}
       />
 
-      <PerspectivesDialog open={perspectivesOpen} onOpenChange={setPerspectivesOpen} />
+      <PerspectivesDialog
+        open={perspectivesOpen}
+        onOpenChange={setPerspectivesOpen}
+        fetchPerspectives={() => perspectivesFn()}
+      />
     </div>
   );
 }
