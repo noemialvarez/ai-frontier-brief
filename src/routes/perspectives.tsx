@@ -251,11 +251,30 @@ function PerspectivesPage() {
                         </button>
                       </>
                     )}
-                    <div className="mt-3">
+                    <div className="mt-3 flex flex-wrap items-center gap-1">
                       <Button asChild size="sm" variant="ghost">
                         <a href={it.url} target="_blank" rel="noreferrer">
                           Open <ExternalLink className="ml-1 h-3.5 w-3.5" />
                         </a>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => toggleSave(it.url)}
+                        className={saved.has(it.url) ? "text-brand-purple" : ""}
+                      >
+                        {saved.has(it.url) ? (
+                          <>
+                            <BookmarkCheck className="mr-1 h-3.5 w-3.5" /> Saved
+                          </>
+                        ) : (
+                          <>
+                            <Bookmark className="mr-1 h-3.5 w-3.5" /> Save for later
+                          </>
+                        )}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => copyLink(it.url)}>
+                        <Link2 className="mr-1 h-3.5 w-3.5" /> Copy link
                       </Button>
                     </div>
                   </CardContent>
