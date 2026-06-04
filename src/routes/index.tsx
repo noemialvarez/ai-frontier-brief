@@ -962,3 +962,105 @@ function ContributorSourcesDialog({
     </Dialog>
   );
 }
+
+function AddPerspectiveDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onSubmit: (v: {
+    name: string;
+    feed_url: string;
+    kind: "perspective_rss" | "perspective_youtube";
+  }) => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [kind, setKind] = useState<"perspective_rss" | "perspective_youtube">(
+    "perspective_rss",
+  );
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add a Research & Perspectives source</DialogTitle>
+          <DialogDescription>
+            Add an RSS/Atom feed or YouTube channel from an influential AI voice
+            (researcher, journalist, thinker). It will appear in the Research &
+            Perspectives page.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="persp-name">Name</Label>
+            <Input
+              id="persp-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Andrej Karpathy"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="persp-url">Feed or channel URL</Label>
+            <Input
+              id="persp-url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://…/feed or https://www.youtube.com/@handle"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Kind</Label>
+            <div className="flex gap-2">
+              {(
+                [
+                  { v: "perspective_rss", l: "RSS / Atom" },
+                  { v: "perspective_youtube", l: "YouTube channel" },
+                ] as const
+              ).map((k) => (
+                <button
+                  key={k.v}
+                  type="button"
+                  onClick={() => setKind(k.v)}
+                  className={
+                    "rounded-md px-3 py-1.5 text-sm border " +
+                    (kind === k.v
+                      ? "bg-gradient-brand text-white border-transparent"
+                      : "bg-background")
+                  }
+                >
+                  {k.l}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={busy || !name || !url}
+            className="bg-gradient-brand text-white"
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onSubmit({ name, feed_url: url, kind });
+                setName("");
+                setUrl("");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Add source
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
