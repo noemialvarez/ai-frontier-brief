@@ -166,16 +166,11 @@ export function Home() {
     [data.sources]
   );
 
-  // Show AI House Davos in the 9th position (index 8) if present.
-  const orderedSources = useMemo(() => {
-    const arr = [...data.sources];
-    const idx = arr.findIndex((s) => /ai\s*house/i.test(s.name));
-    if (idx === -1) return arr;
-    const [aiHouse] = arr.splice(idx, 1);
-    const target = Math.min(8, arr.length);
-    arr.splice(target, 0, aiHouse);
-    return arr;
-  }, [data.sources]);
+  // Alphabetical order, case-insensitive.
+  const orderedSources = useMemo(
+    () => [...data.sources].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
+    [data.sources]
+  );
 
   const toggleSetItem = (set: Set<string>, val: string, setter: (s: Set<string>) => void) => {
     const n = new Set(set);
