@@ -576,6 +576,7 @@ export const listContributorSources = createServerFn({ method: "GET" }).handler(
     .from("sources")
     .select("id, name, kind, feed_url, user_id, created_at")
     .not("user_id", "is", null)
+    .in("kind", ["rss", "youtube"])
     .order("created_at", { ascending: false })
     .limit(100);
   if (userId) q = q.neq("user_id", userId);
