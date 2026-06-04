@@ -572,6 +572,26 @@ export function Home() {
           }
         }}
       />
+
+      <ContributorSourcesDialog
+        open={contributorsOpen}
+        onOpenChange={setContributorsOpen}
+        fetchContributors={() => contributorsFn()}
+        isSignedIn={isSignedIn}
+        requireAuth={() => requireAuth("add a source")}
+        existingFeedUrls={new Set(data.sources.map((s) => s.feed_url))}
+        onAdd={async (v) => {
+          try {
+            await addFn({ data: v });
+            toast.success(`Added “${v.name}”`);
+            invalidate();
+          } catch (e: any) {
+            toast.error(e.message ?? "Failed to add source");
+          }
+        }}
+      />
+
+      <PerspectivesDialog open={perspectivesOpen} onOpenChange={setPerspectivesOpen} />
     </div>
   );
 }
