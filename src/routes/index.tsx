@@ -15,7 +15,6 @@ import {
   LogOut,
   Plus,
   RefreshCw,
-  Sparkles,
   ThumbsDown,
   Users,
   X,
@@ -65,7 +64,6 @@ import {
   listContributorSources,
   markIrrelevant,
   removeSource,
-  suggestNewSources,
   toggleSaved,
 } from "@/lib/news.functions";
 
@@ -112,7 +110,6 @@ export function Home() {
   const addFn = useServerFn(addSource);
   const addPerspectiveFn = useServerFn(addPerspectiveSource);
   const toggleFn = useServerFn(toggleSaved);
-  const suggestFn = useServerFn(suggestNewSources);
   const contributorsFn = useServerFn(listContributorSources);
   const removeFn = useServerFn(removeSource);
   const irrelevantFn = useServerFn(markIrrelevant);
@@ -124,7 +121,6 @@ export function Home() {
   const [activeSources, setActiveSources] = useState<Set<string>>(new Set());
   const [activeThemes, setActiveThemes] = useState<Set<string>>(new Set());
   const [addOpen, setAddOpen] = useState(false);
-  const [suggestOpen, setSuggestOpen] = useState(false);
   const [contributorsOpen, setContributorsOpen] = useState(false);
   const [addPerspectiveOpen, setAddPerspectiveOpen] = useState(false);
   const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
@@ -263,14 +259,6 @@ export function Home() {
               className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
             >
               <Plus className="mr-2 h-4 w-4" /> Add new source
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => (isSignedIn ? setSuggestOpen(true) : requireAuth("get source suggestions"))}
-              className="bg-white border-2 border-brand-turquoise text-foreground hover:bg-brand-turquoise/10"
-            >
-              <Sparkles className="mr-2 h-4 w-4" /> Suggest new sources
             </Button>
             <Button
               variant="outline"
@@ -567,20 +555,6 @@ export function Home() {
         }}
       />
 
-      <SuggestSourcesDialog
-        open={suggestOpen}
-        onOpenChange={setSuggestOpen}
-        fetchSuggestions={() => suggestFn()}
-        onAdd={async (v) => {
-          try {
-            await addFn({ data: v });
-            toast.success(`Added “${v.name}”`);
-            invalidate();
-          } catch (e: any) {
-            toast.error(e.message ?? "Failed to add source");
-          }
-        }}
-      />
 
       <ContributorSourcesDialog
         open={contributorsOpen}
@@ -708,135 +682,6 @@ function AddSourceDialog({
             }}
           >
             {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Add source
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-type Suggestion = {
-  name: string;
-  feed_url: string;
-  kind: "rss" | "youtube";
-  description: string;
-  example_articles: { title: string }[];
-};
-
-function SuggestSourcesDialog({
-  open,
-  onOpenChange,
-  fetchSuggestions,
-  onAdd,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  fetchSuggestions: () => Promise<{ suggestions: Suggestion[] }>;
-  onAdd: (v: { name: string; feed_url: string; kind: "rss" | "youtube" }) => Promise<void>;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<Suggestion[]>([]);
-  const [added, setAdded] = useState<Set<string>>(new Set());
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const r = await fetchSuggestions();
-      setItems(r.suggestions);
-      setAdded(new Set());
-    } catch (e: any) {
-      toast.error(e.message ?? "Failed to load suggestions");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (o && items.length === 0) void load();
-      }}
-    >
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Suggested sources</DialogTitle>
-          <DialogDescription>
-            AI-recommended feeds that fit your themes. Example articles are illustrative — they show
-            the kind of content each source publishes.
-          </DialogDescription>
-        </DialogHeader>
-
-        <ScrollArea className="max-h-[60vh] pr-3">
-          {loading && (
-            <div className="flex items-center justify-center py-10 text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating suggestions…
-            </div>
-          )}
-          {!loading && items.length === 0 && (
-            <div className="py-10 text-center text-sm text-muted-foreground">No suggestions yet.</div>
-          )}
-          <div className="space-y-3">
-            {items.map((s) => {
-              const isAdded = added.has(s.feed_url);
-              return (
-                <div key={s.feed_url} className="rounded-lg border p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold">{s.name}</h4>
-                        <Badge variant="outline" className="text-[10px] uppercase">
-                          {s.kind}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{s.description}</p>
-                      <a
-                        href={s.feed_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 inline-block text-xs text-muted-foreground underline truncate max-w-full"
-                      >
-                        {s.feed_url}
-                      </a>
-                    </div>
-                    <Button
-                      size="sm"
-                      disabled={isAdded}
-                      className={isAdded ? "" : "bg-gradient-brand text-white"}
-                      variant={isAdded ? "outline" : "default"}
-                      onClick={async () => {
-                        await onAdd({ name: s.name, feed_url: s.feed_url, kind: s.kind });
-                        setAdded((prev) => new Set(prev).add(s.feed_url));
-                      }}
-                    >
-                      {isAdded ? "Added" : "Add source"}
-                    </Button>
-                  </div>
-                  <div className="mt-3">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">
-                      Example articles this source would publish
-                    </div>
-                    <ul className="space-y-1">
-                      {s.example_articles.slice(0, 3).map((a, i) => (
-                        <li key={i} className="text-sm flex gap-2">
-                          <span className="text-muted-foreground">→</span>
-                          <span>{a.title}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </ScrollArea>
-
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
-          <Button onClick={load} disabled={loading} variant="outline">
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            Regenerate
           </Button>
         </DialogFooter>
       </DialogContent>
