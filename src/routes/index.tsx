@@ -61,6 +61,7 @@ import {
   fetchLatestNews,
   listArticles,
   listContributorSources,
+  listPerspectives,
   markIrrelevant,
   removeSource,
   suggestNewSources,
