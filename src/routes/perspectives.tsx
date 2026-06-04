@@ -5,7 +5,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  Bookmark,
+  BookmarkCheck,
   ExternalLink,
+  Link2,
   Loader2,
   RefreshCw,
 } from "lucide-react";
