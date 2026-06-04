@@ -595,21 +595,31 @@ export const listContributorSources = createServerFn({ method: "GET" }).handler(
  * Fetches articles/videos/papers from a small curated set of influential AI voices.
  * Used by the "Research & Perspectives" view.
  */
-const PERSPECTIVE_SOURCES = [
+type PerspectiveSource =
+  | { key: string; label: string; kind: "youtube"; handle: string; link: string }
+  | { key: string; label: string; kind: "rss"; feed_url: string; link: string }
+  | { key: string; label: string; kind: "html"; link: string };
+
+const PERSPECTIVE_SOURCES: PerspectiveSource[] = [
   {
     key: "ai-house-davos",
     label: "AI House Davos",
-    kind: "youtube" as const,
-    // Channel ID resolved at runtime from https://www.youtube.com/@AIHouseDavos
+    kind: "youtube",
     handle: "AIHouseDavos",
     link: "https://www.youtube.com/@AIHouseDavos",
   },
   {
     key: "ilya-papers",
     label: "Ilya Sutskever's 30 Foundational Papers",
-    kind: "rss" as const,
+    kind: "rss",
     feed_url: "https://medium.com/feed/ilya-sutskevers-30-foundational-papers-of-ai",
     link: "https://medium.com/ilya-sutskevers-30-foundational-papers-of-ai",
+  },
+  {
+    key: "karen-hao-clips",
+    label: "Karen Hao — Selected Writing",
+    kind: "html",
+    link: "https://karendhao.com/clips",
   },
 ];
 
@@ -633,6 +643,72 @@ async function resolveYoutubeChannelId(handle: string): Promise<string | null> {
   return null;
 }
 
+/** Heuristic: detect if a string is predominantly English/Latin-script. */
+function isLikelyEnglish(text: string): boolean {
+  if (!text) return true;
+  // CJK, Cyrillic, Arabic, Hebrew, Devanagari, Thai, Greek
+  const nonLatin = (text.match(
+    /[\u0370-\u03FF\u0400-\u04FF\u0500-\u052F\u0590-\u05FF\u0600-\u06FF\u0900-\u097F\u0E00-\u0E7F\u3000-\u9FFF\uAC00-\uD7AF\u3040-\u30FF]/g,
+  ) || []).length;
+  const letters = (text.match(/\p{L}/gu) || []).length;
+  if (letters === 0) return true;
+  return nonLatin / letters < 0.2;
+}
+
+async function fetchKarenHaoClips(): Promise<FeedItem[]> {
+  const res = await fetch("https://karendhao.com/clips", {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; AIFrontierBrief/1.0)" },
+  });
+  if (!res.ok) throw new Error(`karendhao.com returned ${res.status}`);
+  const html = await res.text();
+  const items: FeedItem[] = [];
+  const seen = new Set<string>();
+  // Anchor tags with external https hrefs and inner text
+  const linkRe = /<a\b[^>]*href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = linkRe.exec(html))) {
+    const url = m[1];
+    const inner = stripHtml(m[2]).trim();
+    if (!inner || inner.length < 10) continue;
+    if (url.includes("karendhao.com") || url.includes("squarespace")) continue;
+    if (seen.has(url)) continue;
+    seen.add(url);
+    // Try to capture nearby year, e.g. "</a>, 2025."
+    const tail = html.slice(linkRe.lastIndex, linkRe.lastIndex + 40);
+    const yearMatch = tail.match(/(\d{4})/);
+    items.push({
+      title: inner,
+      link: url,
+      description: "",
+      pubDate: yearMatch ? `${yearMatch[1]}-01-01T00:00:00Z` : undefined,
+    });
+  }
+  return items;
+}
+
+export const addPerspectiveSource = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        name: z.string().min(1).max(200),
+        feed_url: z.string().url().max(1000),
+        kind: z.enum(["perspective_rss", "perspective_youtube"]).default("perspective_rss"),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const userId = await requireUserId();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("sources").insert({
+      name: data.name,
+      feed_url: data.feed_url,
+      kind: data.kind,
+      user_id: userId,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const listPerspectives = createServerFn({ method: "GET" }).handler(async () => {
   const results: {
     source_key: string;
@@ -644,42 +720,79 @@ export const listPerspectives = createServerFn({ method: "GET" }).handler(async 
     published_at: string | null;
   }[] = [];
 
-  for (const src of PERSPECTIVE_SOURCES) {
+  // Load user-contributed perspective sources from DB.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const userPerspRes = await supabaseAdmin
+    .from("sources")
+    .select("id, name, feed_url, kind")
+    .in("kind", ["perspective_rss", "perspective_youtube"]);
+  const userSources: PerspectiveSource[] = (userPerspRes.data ?? []).map((s) => {
+    if (s.kind === "perspective_youtube") {
+      // feed_url may be a channel URL like https://www.youtube.com/@handle
+      const handleMatch = s.feed_url.match(/youtube\.com\/@([^/?#]+)/);
+      const handle = handleMatch?.[1] ?? "";
+      return {
+        key: `user-${s.id}`,
+        label: s.name,
+        kind: "youtube",
+        handle,
+        link: s.feed_url,
+      };
+    }
+    return {
+      key: `user-${s.id}`,
+      label: s.name,
+      kind: "rss",
+      feed_url: s.feed_url,
+      link: s.feed_url,
+    };
+  });
+
+  const all: PerspectiveSource[] = [...PERSPECTIVE_SOURCES, ...userSources];
+
+  for (const src of all) {
     try {
-      let feedUrl: string | null = null;
+      let items: FeedItem[] = [];
       if (src.kind === "youtube") {
-        const channelId = await resolveYoutubeChannelId(src.handle!);
+        if (!src.handle) continue;
+        const channelId = await resolveYoutubeChannelId(src.handle);
         if (!channelId) continue;
-        feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-      } else {
-        feedUrl = src.feed_url!;
+        items = await parseFeed(
+          `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`,
+          "youtube",
+        );
+      } else if (src.kind === "rss") {
+        items = await parseFeed(src.feed_url, "rss");
+      } else if (src.kind === "html" && src.key === "karen-hao-clips") {
+        items = await fetchKarenHaoClips();
       }
-      const items = await parseFeed(feedUrl, src.kind);
-      for (const it of items.slice(0, 20)) {
+      for (const it of items.slice(0, 30)) {
         if (!it.title || !it.link) continue;
+        const title = stripHtml(it.title);
         const summary = stripHtml(it.description ?? "").slice(0, 1200);
+        // English-only filter
+        if (!isLikelyEnglish(title) || (summary && !isLikelyEnglish(summary))) continue;
         results.push({
           source_key: src.key,
           source_label: src.label,
           source_link: src.link,
-          title: stripHtml(it.title),
+          title,
           url: it.link,
           summary,
           published_at: it.pubDate ? new Date(it.pubDate).toISOString() : null,
         });
       }
-    } catch (e) {
+    } catch {
       // skip failing source silently
     }
   }
 
-  // Sort newest first
   results.sort((a, b) => {
     const ta = a.published_at ? Date.parse(a.published_at) : 0;
     const tb = b.published_at ? Date.parse(b.published_at) : 0;
     return tb - ta;
   });
 
-  const sources = PERSPECTIVE_SOURCES.map((s) => ({ key: s.key, label: s.label, link: s.link }));
+  const sources = all.map((s) => ({ key: s.key, label: s.label, link: s.link }));
   return { items: results, sources };
 });
