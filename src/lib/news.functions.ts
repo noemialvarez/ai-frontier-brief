@@ -134,7 +134,7 @@ function stripHtml(s: string): string {
 async function summarizeAndTag(
   items: { title: string; description: string }[],
   irrelevantExamples: string[] = []
-): Promise<{ summary: string; themes: string[]; isAIRelated: boolean }[]> {
+): Promise<{ summary: string; summary_short: string; themes: string[]; isAIRelated: boolean }[]> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -153,7 +153,7 @@ async function summarizeAndTag(
         {
           role: "system",
           content:
-            "You analyze news articles for an AI-news brief whose readers want to consume the news in-place and only click through for the items they are deeply interested in. For each item, write a thorough, self-contained summary of 12-18 sentences (roughly 280-420 words) that lets the reader skip the source article entirely unless they want to go deeper. Cover: what happened, who is involved, key facts and numbers, relevant context and background, how it fits the broader AI landscape, notable quotes or claims, mechanisms or how-it-works details when applicable, reactions or implications, and what to watch next. Write in clear neutral prose organized in 2-4 short paragraphs (use \\n\\n between paragraphs) — not bullet points, not a teaser, no marketing fluff. Use only the title and snippet provided; do not invent facts or numbers. Then tag relevant themes from the fixed list, and decide whether it belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering." +
+            "You analyze news articles for an AI-news brief. For each item produce TWO summaries: (1) summary_short — an 'express summary' of 2 sentences (~35-55 words) that captures the single most important takeaway so the reader instantly knows what the story is about and whether to dig deeper; (2) summary — the 'Insight Summary', a thorough self-contained 12-18 sentence (~280-420 word) analysis in 2-4 short paragraphs separated by \\n\\n, covering what happened, who is involved, key facts and numbers, relevant context and background, how it fits the broader AI landscape, notable quotes or claims, mechanisms or how-it-works details when applicable, reactions or implications, and what to watch next. Clear neutral prose — no bullets, no teasers, no marketing fluff. Use only the title and snippet provided; do not invent facts. Then tag relevant themes and decide whether the item belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering." +
             examplesBlock,
         },
         {
@@ -177,14 +177,15 @@ async function summarizeAndTag(
                   items: {
                     type: "object",
                     properties: {
-                      summary: { type: "string", description: "Thorough 12-18 sentence (~280-420 word) self-contained summary in 2-4 short paragraphs separated by \\n\\n." },
+                      summary_short: { type: "string", description: "Express summary: 2 sentences, ~35-55 words, captures the single most important takeaway." },
+                      summary: { type: "string", description: "Insight Summary: thorough 12-18 sentence (~280-420 word) summary in 2-4 short paragraphs separated by \\n\\n." },
                       themes: {
                         type: "array",
                         items: { type: "string", enum: [...THEMES] },
                       },
                       isAIRelated: { type: "boolean" },
                     },
-                    required: ["summary", "themes", "isAIRelated"],
+                    required: ["summary_short", "summary", "themes", "isAIRelated"],
                     additionalProperties: false,
                   },
                 },
@@ -207,8 +208,9 @@ async function summarizeAndTag(
   const args = json?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
   if (!args) throw new Error("AI response missing tool call");
   const parsed = JSON.parse(args);
-  return parsed.results as { summary: string; themes: string[]; isAIRelated: boolean }[];
+  return parsed.results as { summary: string; summary_short: string; themes: string[]; isAIRelated: boolean }[];
 }
+
 
 // ---------- server functions ----------
 
