@@ -19,7 +19,9 @@ type FeedItem = {
   link: string;
   description?: string;
   pubDate?: string;
+  author?: string;
 };
+
 
 /** Returns the authenticated user id from the request, or null if anonymous. */
 async function getOptionalUserId(): Promise<string | null> {
