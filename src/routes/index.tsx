@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowUp,
@@ -130,6 +130,15 @@ export function Home() {
   const [showFilters, setShowFilters] = useState(false);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
+
+  // Auto-fetch latest news on first mount so the page opens with fresh content.
+  const hasAutoFetched = useRef(false);
+  useEffect(() => {
+    if (!hasAutoFetched.current) {
+      hasAutoFetched.current = true;
+      fetchMut.mutate();
+    }
+  }, []);
 
   // Refetch when auth state changes so per-user state (saved/irrelevant/own sources) is correct.
   useEffect(() => {
