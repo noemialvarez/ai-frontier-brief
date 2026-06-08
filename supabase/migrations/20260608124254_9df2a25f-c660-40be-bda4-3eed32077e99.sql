@@ -1,0 +1,1 @@
+DELETE FROM public.sources WHERE feed_url IN ('https://a16z.com/feed/','https://learnprompting.com/rss.xml','https://www.pinecone.io/rss.xml');
