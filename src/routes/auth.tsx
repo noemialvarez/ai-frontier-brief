@@ -110,6 +110,18 @@ function AuthPage() {
                   placeholder="you@example.com"
                 />
               </div>
+              <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={staySignedIn}
+                  onChange={(e) => persistStayPreference(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-brand-purple"
+                />
+                <span>
+                  Stay signed in on this device.{" "}
+                  <span className="text-xs">Uncheck on a shared computer — we'll sign you out when you close the tab.</span>
+                </span>
+              </label>
               <Button
                 type="submit"
                 disabled={busy || !email}
