@@ -357,6 +357,28 @@ export function Home() {
             <div className="mt-3 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
+                  Themes
+                </span>
+                {THEMES.map((t) => {
+                  const on = activeThemes.has(t);
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => toggleSetItem(activeThemes, t, setActiveThemes)}
+                      className={
+                        "rounded-full px-3 py-1 text-xs border transition capitalize " +
+                        (on
+                          ? "bg-gradient-brand text-white border-transparent"
+                          : "bg-background hover:bg-muted")
+                      }
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
                   Sources
                 </span>
                 {orderedSources.map((s) => {
@@ -403,28 +425,6 @@ export function Home() {
                         </button>
                       )}
                     </span>
-                  );
-                })}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
-                  Themes
-                </span>
-                {THEMES.map((t) => {
-                  const on = activeThemes.has(t);
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => toggleSetItem(activeThemes, t, setActiveThemes)}
-                      className={
-                        "rounded-full px-3 py-1 text-xs border transition capitalize " +
-                        (on
-                          ? "bg-gradient-brand text-white border-transparent"
-                          : "bg-background hover:bg-muted")
-                      }
-                    >
-                      {t}
-                    </button>
                   );
                 })}
               </div>
