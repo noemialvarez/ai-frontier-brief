@@ -818,13 +818,14 @@ function ContributorSourcesDialog({
     }
   };
 
+  useEffect(() => {
+    if (open) void load();
+  }, [open]);
+
   return (
     <Dialog
       open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (o) void load();
-      }}
+      onOpenChange={onOpenChange}
     >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
