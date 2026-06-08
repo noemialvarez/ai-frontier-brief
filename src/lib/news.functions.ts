@@ -399,10 +399,13 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
   const errors: string[] = [];
   const candidates: {
     source_id: string;
+    source_name: string;
     external_url: string;
     title: string;
     description: string;
     published_at: string | null;
+    author: string | null;
+    author_url: string | null;
   }[] = [];
 
   const withTimeout = <T,>(p: Promise<T>, ms: number, label: string) =>
@@ -437,15 +440,21 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
       const title = stripHtml(it.title).slice(0, 500);
       const description = stripHtml(it.description ?? "");
       if (isExcludedByKeywords(title, description)) continue;
+      const author = it.author ? stripHtml(String(it.author)).slice(0, 200) : null;
+      const author_url = author ? deriveAuthorUrl(it.link, src.name, author) : null;
       candidates.push({
         source_id: src.id,
+        source_name: src.name,
         external_url: it.link,
         title,
         description,
         published_at: it.pubDate ? new Date(it.pubDate).toISOString() : null,
+        author,
+        author_url,
       });
     }
   }
+
 
   if (candidates.length === 0) return { added: 0, skipped: 0, errors };
 
