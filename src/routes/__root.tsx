@@ -121,6 +121,27 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  // Honor the "Stay signed in" preference set on the auth page:
+  // when unchecked, sign the user out when they close the tab/window.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onUnload = () => {
+      try {
+        if (window.localStorage.getItem("afb_stay_signed_in") === "false") {
+          // Best-effort synchronous-ish sign-out; the request may not complete,
+          // but Supabase will clear local session state immediately.
+          import("@/integrations/supabase/client").then(({ supabase }) => {
+            void supabase.auth.signOut();
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("pagehide", onUnload);
+    return () => window.removeEventListener("pagehide", onUnload);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
@@ -129,3 +150,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+

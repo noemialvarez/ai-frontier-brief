@@ -19,7 +19,9 @@ type FeedItem = {
   link: string;
   description?: string;
   pubDate?: string;
+  author?: string;
 };
+
 
 /** Returns the authenticated user id from the request, or null if anonymous. */
 async function getOptionalUserId(): Promise<string | null> {
@@ -67,6 +69,7 @@ async function parseFeed(url: string, kind: "rss" | "youtube"): Promise<FeedItem
       link: e.link?.["@_href"] ?? e.link ?? "",
       description: e["media:group"]?.["media:description"] ?? "",
       pubDate: e.published,
+      author: e.author?.name ?? undefined,
     }));
   }
 
@@ -78,6 +81,7 @@ async function parseFeed(url: string, kind: "rss" | "youtube"): Promise<FeedItem
       link: String(i.link?.["#text"] ?? i.link ?? ""),
       description: String(i.description ?? i["content:encoded"] ?? ""),
       pubDate: i.pubDate ?? i["dc:date"],
+      author: i["dc:creator"] ?? i.author ?? undefined,
     }));
   }
   const atomEntries = data?.feed?.entry;
@@ -85,16 +89,43 @@ async function parseFeed(url: string, kind: "rss" | "youtube"): Promise<FeedItem
     const list = Array.isArray(atomEntries) ? atomEntries : [atomEntries];
     return list.map((e: any) => {
       const linkEl = Array.isArray(e.link) ? e.link[0] : e.link;
+      const authorEl = Array.isArray(e.author) ? e.author[0] : e.author;
       return {
         title: String(e.title?.["#text"] ?? e.title ?? ""),
         link: linkEl?.["@_href"] ?? linkEl ?? "",
         description: String(e.summary?.["#text"] ?? e.summary ?? e.content?.["#text"] ?? e.content ?? ""),
         pubDate: e.published ?? e.updated,
+        author: authorEl?.name ?? authorEl ?? undefined,
       };
     });
   }
   return [];
 }
+
+/** Best-effort: derive a Medium/Substack author profile URL from the article URL + author name. */
+function deriveAuthorUrl(articleUrl: string, sourceName: string, author?: string): string | null {
+  if (!author) return null;
+  try {
+    const u = new URL(articleUrl);
+    const host = u.hostname.toLowerCase();
+    const nameLower = sourceName.toLowerCase();
+    // Substack: each publication is its own subdomain — root is the author's space.
+    if (host.endsWith(".substack.com") || nameLower.includes("substack")) {
+      return `${u.protocol}//${u.host}`;
+    }
+    // Medium: posts live at medium.com/@handle/slug or <pub>.medium.com/...
+    if (host === "medium.com" || host.endsWith(".medium.com") || nameLower.includes("medium")) {
+      const seg = u.pathname.split("/").filter(Boolean);
+      if (seg[0]?.startsWith("@")) return `https://medium.com/${seg[0]}`;
+      // Fallback: search by author name
+      return `https://medium.com/search?q=${encodeURIComponent(author)}`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 
 function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -103,7 +134,7 @@ function stripHtml(s: string): string {
 async function summarizeAndTag(
   items: { title: string; description: string }[],
   irrelevantExamples: string[] = []
-): Promise<{ summary: string; themes: string[]; isAIRelated: boolean }[]> {
+): Promise<{ summary: string; summary_short: string; themes: string[]; isAIRelated: boolean }[]> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -122,7 +153,7 @@ async function summarizeAndTag(
         {
           role: "system",
           content:
-            "You analyze news articles for an AI-news brief whose readers want to consume the news in-place and only click through for the items they are deeply interested in. For each item, write a thorough, self-contained summary of 12-18 sentences (roughly 280-420 words) that lets the reader skip the source article entirely unless they want to go deeper. Cover: what happened, who is involved, key facts and numbers, relevant context and background, how it fits the broader AI landscape, notable quotes or claims, mechanisms or how-it-works details when applicable, reactions or implications, and what to watch next. Write in clear neutral prose organized in 2-4 short paragraphs (use \\n\\n between paragraphs) — not bullet points, not a teaser, no marketing fluff. Use only the title and snippet provided; do not invent facts or numbers. Then tag relevant themes from the fixed list, and decide whether it belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering." +
+            "You analyze news articles for an AI-news brief. For each item produce TWO summaries: (1) summary_short — an 'express summary' of 2 sentences (~35-55 words) that captures the single most important takeaway so the reader instantly knows what the story is about and whether to dig deeper; (2) summary — the 'Insight Summary', a thorough self-contained 12-18 sentence (~280-420 word) analysis in 2-4 short paragraphs separated by \\n\\n, covering what happened, who is involved, key facts and numbers, relevant context and background, how it fits the broader AI landscape, notable quotes or claims, mechanisms or how-it-works details when applicable, reactions or implications, and what to watch next. Clear neutral prose — no bullets, no teasers, no marketing fluff. Use only the title and snippet provided; do not invent facts. Then tag relevant themes and decide whether the item belongs in the brief. Mark isAIRelated=false (so the item is dropped) for: items not genuinely about AI; AND items whose primary angle is AI morality/ethics, public fears or complaints about AI, AI safety doom, autonomous weapons / killer drones, military AI ethics, regulation-of-AI debates framed around fear. Keep items focused on AI products, research, business, agents, LLMs, hands-on use, startups, prompt engineering." +
             examplesBlock,
         },
         {
@@ -146,14 +177,15 @@ async function summarizeAndTag(
                   items: {
                     type: "object",
                     properties: {
-                      summary: { type: "string", description: "Thorough 12-18 sentence (~280-420 word) self-contained summary in 2-4 short paragraphs separated by \\n\\n." },
+                      summary_short: { type: "string", description: "Express summary: 2 sentences, ~35-55 words, captures the single most important takeaway." },
+                      summary: { type: "string", description: "Insight Summary: thorough 12-18 sentence (~280-420 word) summary in 2-4 short paragraphs separated by \\n\\n." },
                       themes: {
                         type: "array",
                         items: { type: "string", enum: [...THEMES] },
                       },
                       isAIRelated: { type: "boolean" },
                     },
-                    required: ["summary", "themes", "isAIRelated"],
+                    required: ["summary_short", "summary", "themes", "isAIRelated"],
                     additionalProperties: false,
                   },
                 },
@@ -176,8 +208,9 @@ async function summarizeAndTag(
   const args = json?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
   if (!args) throw new Error("AI response missing tool call");
   const parsed = JSON.parse(args);
-  return parsed.results as { summary: string; themes: string[]; isAIRelated: boolean }[];
+  return parsed.results as { summary: string; summary_short: string; themes: string[]; isAIRelated: boolean }[];
 }
+
 
 // ---------- server functions ----------
 
@@ -220,7 +253,7 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
 
   const articlesRes = await supabaseAdmin
     .from("articles")
-    .select("id, source_id, external_url, title, summary, themes, published_at, fetched_at")
+    .select("id, source_id, external_url, title, summary, summary_short, author, author_url, themes, published_at, fetched_at")
     .in("source_id", sourceIds)
     .eq("irrelevant", false)
     .order("published_at", { ascending: false, nullsFirst: false })
@@ -366,10 +399,13 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
   const errors: string[] = [];
   const candidates: {
     source_id: string;
+    source_name: string;
     external_url: string;
     title: string;
     description: string;
     published_at: string | null;
+    author: string | null;
+    author_url: string | null;
   }[] = [];
 
   const withTimeout = <T,>(p: Promise<T>, ms: number, label: string) =>
@@ -404,15 +440,21 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
       const title = stripHtml(it.title).slice(0, 500);
       const description = stripHtml(it.description ?? "");
       if (isExcludedByKeywords(title, description)) continue;
+      const author = it.author ? stripHtml(String(it.author)).slice(0, 200) : null;
+      const author_url = author ? deriveAuthorUrl(it.link, src.name, author) : null;
       candidates.push({
         source_id: src.id,
+        source_name: src.name,
         external_url: it.link,
         title,
         description,
         published_at: it.pubDate ? new Date(it.pubDate).toISOString() : null,
+        author,
+        author_url,
       });
     }
   }
+
 
   if (candidates.length === 0) return { added: 0, skipped: 0, errors };
 
@@ -453,9 +495,13 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
           external_url: b.external_url,
           title: b.title,
           summary: a.summary,
+          summary_short: a.summary_short,
+          author: b.author,
+          author_url: b.author_url,
           themes: a.themes,
           published_at: b.published_at,
         }));
+
       if (toInsert.length > 0) {
         const { error: insErr } = await supabaseAdmin.from("articles").insert(toInsert);
         if (insErr) errors.push(`insert: ${insErr.message}`);

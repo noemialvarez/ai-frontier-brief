@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       articles: {
         Row: {
+          author: string | null
+          author_url: string | null
           external_url: string
           fetched_at: string
           id: string
@@ -24,10 +26,13 @@ export type Database = {
           saved: boolean
           source_id: string
           summary: string
+          summary_short: string | null
           themes: string[]
           title: string
         }
         Insert: {
+          author?: string | null
+          author_url?: string | null
           external_url: string
           fetched_at?: string
           id?: string
@@ -36,10 +41,13 @@ export type Database = {
           saved?: boolean
           source_id: string
           summary?: string
+          summary_short?: string | null
           themes?: string[]
           title: string
         }
         Update: {
+          author?: string | null
+          author_url?: string | null
           external_url?: string
           fetched_at?: string
           id?: string
@@ -48,6 +56,7 @@ export type Database = {
           saved?: boolean
           source_id?: string
           summary?: string
+          summary_short?: string | null
           themes?: string[]
           title?: string
         }

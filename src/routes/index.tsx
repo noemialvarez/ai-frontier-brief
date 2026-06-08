@@ -477,17 +477,61 @@ export function Home() {
                   </h3>
                   {(() => {
                     const expanded = expandedSummaries.has(a.id);
+                    const srcName = src?.name ?? "";
+                    const isMediumOrSubstack = /medium|substack/i.test(srcName);
+                    const showAuthor = isMediumOrSubstack && (a as any).author;
+                    const author = (a as any).author as string | undefined;
+                    const authorUrl = (a as any).author_url as string | undefined;
+                    const longSummary = a.summary;
+                    const shortSummary =
+                      (a as any).summary_short ||
+                      // Fallback for legacy articles without an express summary
+                      (longSummary
+                        ? longSummary.split(/(?<=[.!?])\s+/).slice(0, 2).join(" ")
+                        : "");
+                    const AuthorByline = showAuthor ? (
+                      <>
+                        {" "}
+                        <span className="text-foreground/60">— by </span>
+                        {authorUrl ? (
+                          <a
+                            href={authorUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-brand-purple hover:underline"
+                          >
+                            {author}
+                          </a>
+                        ) : (
+                          <span className="font-medium">{author}</span>
+                        )}
+                      </>
+                    ) : null;
                     return (
                       <>
-                        <p
-                          className={
-                            "mt-2 text-sm text-muted-foreground leading-relaxed whitespace-pre-line " +
-                            (expanded ? "" : "line-clamp-2")
-                          }
-                        >
-                          {a.summary}
-                        </p>
-                        {a.summary && (
+                        {!expanded && (
+                          <>
+                            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand-turquoise/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-turquoise">
+                              Express summary
+                            </div>
+                            <p className="mt-1.5 text-[15px] text-foreground/75 leading-relaxed whitespace-pre-line">
+                              {shortSummary}
+                              {AuthorByline}
+                            </p>
+                          </>
+                        )}
+                        {expanded && (
+                          <>
+                            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand-purple/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-purple">
+                              Insight summary
+                            </div>
+                            <p className="mt-1.5 text-[15px] text-foreground/75 leading-relaxed whitespace-pre-line">
+                              {longSummary}
+                              {AuthorByline}
+                            </p>
+                          </>
+                        )}
+                        {longSummary && (
                           <button
                             type="button"
                             onClick={() => {
@@ -498,12 +542,13 @@ export function Home() {
                             }}
                             className="mt-1 text-xs font-medium text-brand-purple hover:underline"
                           >
-                            {expanded ? "Show less" : "Read the whole summary"}
+                            {expanded ? "Show express summary" : "Read the Insight Summary"}
                           </button>
                         )}
                       </>
                     );
                   })()}
+
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Button asChild size="sm" variant="ghost">
                       <a href={a.external_url} target="_blank" rel="noreferrer">
