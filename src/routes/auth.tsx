@@ -19,14 +19,21 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const STAY_KEY = "afb_stay_signed_in";
+
 function AuthPage() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [staySignedIn, setStaySignedIn] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const v = window.localStorage.getItem(STAY_KEY);
+      if (v === "false") setStaySignedIn(false);
+    }
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: "/", replace: true });
     });
@@ -35,6 +42,13 @@ function AuthPage() {
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
+
+  const persistStayPreference = (value: boolean) => {
+    setStaySignedIn(value);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STAY_KEY, value ? "true" : "false");
+    }
+  };
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +85,7 @@ function AuthPage() {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
