@@ -253,7 +253,7 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
 
   const articlesRes = await supabaseAdmin
     .from("articles")
-    .select("id, source_id, external_url, title, summary, themes, published_at, fetched_at")
+    .select("id, source_id, external_url, title, summary, summary_short, author, author_url, themes, published_at, fetched_at")
     .in("source_id", sourceIds)
     .eq("irrelevant", false)
     .order("published_at", { ascending: false, nullsFirst: false })
