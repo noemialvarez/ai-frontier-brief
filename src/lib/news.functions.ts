@@ -69,6 +69,7 @@ async function parseFeed(url: string, kind: "rss" | "youtube"): Promise<FeedItem
       link: e.link?.["@_href"] ?? e.link ?? "",
       description: e["media:group"]?.["media:description"] ?? "",
       pubDate: e.published,
+      author: e.author?.name ?? undefined,
     }));
   }
 
@@ -80,6 +81,7 @@ async function parseFeed(url: string, kind: "rss" | "youtube"): Promise<FeedItem
       link: String(i.link?.["#text"] ?? i.link ?? ""),
       description: String(i.description ?? i["content:encoded"] ?? ""),
       pubDate: i.pubDate ?? i["dc:date"],
+      author: i["dc:creator"] ?? i.author ?? undefined,
     }));
   }
   const atomEntries = data?.feed?.entry;
@@ -87,16 +89,43 @@ async function parseFeed(url: string, kind: "rss" | "youtube"): Promise<FeedItem
     const list = Array.isArray(atomEntries) ? atomEntries : [atomEntries];
     return list.map((e: any) => {
       const linkEl = Array.isArray(e.link) ? e.link[0] : e.link;
+      const authorEl = Array.isArray(e.author) ? e.author[0] : e.author;
       return {
         title: String(e.title?.["#text"] ?? e.title ?? ""),
         link: linkEl?.["@_href"] ?? linkEl ?? "",
         description: String(e.summary?.["#text"] ?? e.summary ?? e.content?.["#text"] ?? e.content ?? ""),
         pubDate: e.published ?? e.updated,
+        author: authorEl?.name ?? authorEl ?? undefined,
       };
     });
   }
   return [];
 }
+
+/** Best-effort: derive a Medium/Substack author profile URL from the article URL + author name. */
+function deriveAuthorUrl(articleUrl: string, sourceName: string, author?: string): string | null {
+  if (!author) return null;
+  try {
+    const u = new URL(articleUrl);
+    const host = u.hostname.toLowerCase();
+    const nameLower = sourceName.toLowerCase();
+    // Substack: each publication is its own subdomain — root is the author's space.
+    if (host.endsWith(".substack.com") || nameLower.includes("substack")) {
+      return `${u.protocol}//${u.host}`;
+    }
+    // Medium: posts live at medium.com/@handle/slug or <pub>.medium.com/...
+    if (host === "medium.com" || host.endsWith(".medium.com") || nameLower.includes("medium")) {
+      const seg = u.pathname.split("/").filter(Boolean);
+      if (seg[0]?.startsWith("@")) return `https://medium.com/${seg[0]}`;
+      // Fallback: search by author name
+      return `https://medium.com/search?q=${encodeURIComponent(author)}`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 
 function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
