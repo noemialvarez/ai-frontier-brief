@@ -51,12 +51,20 @@ async function requireUserId(): Promise<string> {
   return uid;
 }
 
+class FeedHttpError extends Error {
+  status: number;
+  constructor(status: number, url: string) {
+    super(`Feed ${url} returned ${status}`);
+    this.status = status;
+  }
+}
+
 async function parseFeed(url: string, kind: "rss" | "youtube"): Promise<FeedItem[]> {
   const { XMLParser } = await import("fast-xml-parser");
   const res = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; AIFrontierBrief/1.0)" },
   });
-  if (!res.ok) throw new Error(`Feed ${url} returned ${res.status}`);
+  if (!res.ok) throw new FeedHttpError(res.status, url);
   const xml = await res.text();
   const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
   const data = parser.parse(xml);
@@ -424,14 +432,35 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
         );
         return { src, items };
       } catch (e: any) {
-        throw new Error(`${src.name}: ${e?.message ?? "fetch failed"}`);
+        const err: any = new Error(`${src.name}: ${e?.message ?? "fetch failed"}`);
+        err.src = src;
+        err.status = e?.status;
+        throw err;
       }
     })
   );
 
+  // Auto-prune permanently broken shared sources (404/410) per project rule.
+  const prunedIds: string[] = [];
+  for (const r of feedResults) {
+    if (r.status !== "rejected") continue;
+    const reason: any = r.reason;
+    const src = reason?.src;
+    const status = reason?.status;
+    if (src && !src.user_id && (status === 404 || status === 410)) {
+      prunedIds.push(src.id);
+    }
+  }
+  if (prunedIds.length > 0) {
+    await supabaseAdmin.from("articles").delete().in("source_id", prunedIds);
+    await supabaseAdmin.from("sources").delete().in("id", prunedIds);
+  }
+
   for (const r of feedResults) {
     if (r.status === "rejected") {
-      errors.push(r.reason?.message ?? "fetch failed");
+      const reason: any = r.reason;
+      if (reason?.src && prunedIds.includes(reason.src.id)) continue;
+      errors.push(reason?.message ?? "fetch failed");
       continue;
     }
     const { src, items } = r.value;
