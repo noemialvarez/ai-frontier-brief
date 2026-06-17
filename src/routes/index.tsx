@@ -217,6 +217,29 @@ export function Home() {
     [data.sources]
   );
 
+  const curatedSources = useMemo(
+    () => orderedSources.filter((s) => !isEstablishedSource(s.name)),
+    [orderedSources]
+  );
+  const establishedSources = useMemo(
+    () => orderedSources.filter((s) => isEstablishedSource(s.name)),
+    [orderedSources]
+  );
+
+  const applyGroupFilter = (ids: string[]) => {
+    if (ids.length === 0) return;
+    const allOn = ids.length === activeSources.size && ids.every((id) => activeSources.has(id));
+    setActiveSources(allOn ? new Set() : new Set(ids));
+  };
+  const curatedActive =
+    curatedSources.length > 0 &&
+    curatedSources.length === activeSources.size &&
+    curatedSources.every((s) => activeSources.has(s.id));
+  const establishedActive =
+    establishedSources.length > 0 &&
+    establishedSources.length === activeSources.size &&
+    establishedSources.every((s) => activeSources.has(s.id));
+
   const toggleSetItem = (set: Set<string>, val: string, setter: (s: Set<string>) => void) => {
     const n = new Set(set);
     if (n.has(val)) n.delete(val);
