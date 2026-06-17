@@ -412,8 +412,6 @@ export function Home() {
                   );
                 })}
               </div>
-            </div>
-          )}
         </div>
 
         <section className="mt-8 grid gap-4">
