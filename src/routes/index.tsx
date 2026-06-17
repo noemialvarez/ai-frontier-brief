@@ -316,9 +316,6 @@ export function Home() {
               <Plus className="mr-2 h-4 w-4" /> Add Research & Perspectives from Influential AI Voices
             </Button>
           </div>
-          <Link to="/newsletter" className="text-brand-purple hover:underline font-medium">
-            Get the daily brief in your inbox
-          </Link>
         </div>
 
       </header>
