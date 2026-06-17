@@ -767,7 +767,7 @@ function FilterRow({
   labelClassName?: string;
   onLabelClick?: () => void;
   labelTitle?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [canScrollRight, setCanScrollRight] = useState(false);
