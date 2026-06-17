@@ -10,7 +10,7 @@ Add your own sources and add sources recommended by our top contributors
 Sign in to save your preferences 
 
 Live app
-ai-frontier-brief.insightsphere.co
+**ai-frontier-brief.insightsphere.co**
 Built with
 React · Lovable · Supabase · Claude API
 About
