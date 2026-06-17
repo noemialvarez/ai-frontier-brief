@@ -421,7 +421,7 @@ export function Home() {
               <CardContent className="py-12 text-center">
                 <p className="text-muted-foreground">
                   {data.articles.length === 0
-                    ? "No articles yet. Click ‘Get most recent news’ to compile your first brief."
+                    ? "No articles in the last 12 hours. Check back soon for fresh briefs."
                     : "No articles match the current filters."}
                 </p>
               </CardContent>
