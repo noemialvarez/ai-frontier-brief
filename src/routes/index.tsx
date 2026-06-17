@@ -61,8 +61,6 @@ const ESTABLISHED_PATTERNS: RegExp[] = [
   /anthropic/i,
   /google.*(blog|deepmind)/i,
   /microsoft.*blog/i,
-  /merantix/i,
-  /medium/i,
 ];
 const isEstablishedSource = (name?: string) =>
   !!name && ESTABLISHED_PATTERNS.some((re) => re.test(name));
