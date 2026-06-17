@@ -270,7 +270,7 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
     .limit(500);
   if (articlesRes.error) throw new Error(articlesRes.error.message);
 
-  const cutoffMs = Date.now() - 24 * 60 * 60 * 1000;
+  const cutoffMs = Date.now() - 12 * 60 * 60 * 1000;
   const articles = (articlesRes.data ?? [])
     .filter((a) => !irrelevantIds.has(a.id))
     .filter((a) => isLikelyEnglish(a.title) && isLikelyEnglish(a.summary ?? ""))
