@@ -40,6 +40,33 @@ const PAYWALL_PATTERNS: RegExp[] = [
 const isPaywalledSource = (name?: string) =>
   !!name && PAYWALL_PATTERNS.some((re) => re.test(name));
 
+// Sources considered "established" — mainstream press, large publications, official company news rooms.
+// Everything else is treated as a "curated" independent newsletter / blog / podcast.
+const ESTABLISHED_PATTERNS: RegExp[] = [
+  /economist/i,
+  /guardian/i,
+  /wsj|wall street journal/i,
+  /new york times|nyt/i,
+  /financial times|^ft\b|ft\.com/i,
+  /bloomberg/i,
+  /reuters/i,
+  /the atlantic/i,
+  /the verge/i,
+  /techcrunch/i,
+  /wired/i,
+  /forbes/i,
+  /cnbc/i,
+  /bbc/i,
+  /openai news/i,
+  /anthropic/i,
+  /google.*(blog|deepmind)/i,
+  /microsoft.*blog/i,
+  /merantix/i,
+  /medium/i,
+];
+const isEstablishedSource = (name?: string) =>
+  !!name && ESTABLISHED_PATTERNS.some((re) => re.test(name));
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
