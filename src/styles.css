@@ -190,3 +190,11 @@
 @utility bg-gradient-brand {
   background-image: var(--gradient-brand);
 }
+
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
