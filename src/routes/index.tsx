@@ -296,7 +296,7 @@ export function Home() {
                 </Link>{" "}
                 to add your own sources, save articles, and personalise your brief. Your preferences
                 remain private, but sources you add can be shared anonymously with the community under{" "}
-                <span className="font-medium">Top Contributor Sources</span>.
+                <span className="font-medium">Top Contributor Sources</span>. You also have the option to receive the news daily in your inbox.
               </>
             )}
           </p>
