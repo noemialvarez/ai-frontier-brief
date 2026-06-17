@@ -1,0 +1,1 @@
+UPDATE public.sources SET name = 'Medium - AI' WHERE id = '6181c5f1-bc03-447f-857c-fc6b7989846e';

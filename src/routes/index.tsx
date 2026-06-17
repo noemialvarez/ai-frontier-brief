@@ -61,8 +61,6 @@ const ESTABLISHED_PATTERNS: RegExp[] = [
   /anthropic/i,
   /google.*(blog|deepmind)/i,
   /microsoft.*blog/i,
-  /merantix/i,
-  /medium/i,
 ];
 const isEstablishedSource = (name?: string) =>
   !!name && ESTABLISHED_PATTERNS.some((re) => re.test(name));
@@ -830,11 +828,11 @@ function FilterRow({
           aria-label="Scroll right"
           onClick={scrollRight}
           className={
-            "absolute right-0 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-6 w-6 rounded-full bg-background border shadow-sm hover:bg-muted transition-opacity " +
+            "absolute right-0 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-7 w-7 rounded-full bg-gradient-brand text-white shadow-md hover:shadow-lg transition-opacity " +
             (canScrollRight ? "opacity-100" : "opacity-0 pointer-events-none")
           }
         >
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-5 w-5" />
         </button>
       </div>
     </div>
