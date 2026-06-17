@@ -338,27 +338,7 @@ export function Home() {
         </div>
 
         <div className="mt-5">
-          <button
-            type="button"
-            onClick={() => setShowFilters((v) => !v)}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-            aria-expanded={showFilters}
-          >
-            <Filter className="h-3.5 w-3.5" />
-            {showFilters ? "Hide filters" : "Filter by source or theme"}
-            {showFilters ? (
-              <ChevronUp className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
-            {(activeSources.size > 0 || activeThemes.size > 0) && (
-              <Badge variant="secondary" className="ml-1 text-[10px]">
-                {activeSources.size + activeThemes.size} active
-              </Badge>
-            )}
-          </button>
-          {showFilters && (
-            <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
                   Themes
