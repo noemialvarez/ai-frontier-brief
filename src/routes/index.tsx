@@ -252,19 +252,12 @@ export function Home() {
             )}
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Button
-              size="lg"
-              onClick={() => fetchMut.mutate()}
-              disabled={fetchMut.isPending}
-              className="bg-gradient-brand text-white hover:opacity-90 border-0 shadow-md"
+            <Link
+              to="/newsletter"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium h-11 px-8 text-brand-purple border-2 border-brand-purple hover:bg-brand-purple/10 transition-colors"
             >
-              {fetchMut.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Get most recent news
-            </Button>
+              Get the daily brief in your inbox
+            </Link>
             <Button
               variant="outline"
               size="lg"
