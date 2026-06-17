@@ -69,6 +69,8 @@ import {
   removeSource,
   toggleSaved,
 } from "@/lib/news.functions";
+import { subscribeToNewsletter } from "@/lib/newsletter.functions";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
