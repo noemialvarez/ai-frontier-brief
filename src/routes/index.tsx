@@ -8,6 +8,7 @@ import {
   Bookmark,
   BookmarkCheck,
   BookOpen,
+  ChevronRight,
   ExternalLink,
   Link2,
   Loader2,
