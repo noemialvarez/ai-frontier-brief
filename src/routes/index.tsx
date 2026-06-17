@@ -385,83 +385,108 @@ export function Home() {
           </Tabs>
         </div>
 
-        <div className="mt-5">
-          <div className="mt-3 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
-                  Themes
-                </span>
-                {THEMES.map((t) => {
-                  const on = activeThemes.has(t);
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => toggleSetItem(activeThemes, t, setActiveThemes)}
-                      className={
-                        "rounded-full px-3 py-1 text-xs border transition capitalize " +
-                        (on
-                          ? "bg-gradient-brand text-white border-transparent"
-                          : "bg-background hover:bg-muted")
-                      }
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
-                  Sources
-                </span>
-                {orderedSources.map((s) => {
-                  const on = activeSources.has(s.id);
-                  const canRemove = isSignedIn && (s as any).user_id === user?.id;
-                  return (
-                    <span
-                      key={s.id}
-                      className={
-                        "inline-flex items-center rounded-full text-xs border transition overflow-hidden " +
-                        (on
-                          ? "bg-gradient-brand text-white border-transparent"
-                          : "bg-background hover:bg-muted")
-                      }
-                    >
-                      <button
-                        onClick={() => toggleSetItem(activeSources, s.id, setActiveSources)}
-                        className="px-3 py-1"
-                      >
-                        {s.name}
-                      </button>
-                      {canRemove && (
-                        <button
-                          aria-label={`Remove ${s.name}`}
-                          onClick={async () => {
-                            if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
-                            try {
-                              await removeFn({ data: { id: s.id } });
-                              toast.success(`Removed "${s.name}"`);
-                              const n = new Set(activeSources);
-                              n.delete(s.id);
-                              setActiveSources(n);
-                              invalidate();
-                            } catch (e: any) {
-                              toast.error(e.message ?? "Failed to remove source");
-                            }
-                          }}
-                          className={
-                            "px-1.5 py-1 border-l " +
-                            (on ? "border-white/30 hover:bg-white/10" : "border-border hover:bg-destructive/10 hover:text-destructive")
-                          }
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
+        <div className="mt-5 rounded-xl border bg-card/40 p-3 space-y-2.5">
+          {/* Themes row */}
+          <FilterRow
+            label="Themes"
+            labelClassName="bg-brand-purple/10 text-brand-purple"
+          >
+            {THEMES.map((t) => {
+              const on = activeThemes.has(t);
+              return (
+                <button
+                  key={t}
+                  onClick={() => toggleSetItem(activeThemes, t, setActiveThemes)}
+                  className={
+                    "shrink-0 rounded-full px-2.5 py-1 text-[11px] border transition capitalize whitespace-nowrap " +
+                    (on
+                      ? "bg-gradient-brand text-white border-transparent"
+                      : "bg-background hover:bg-muted")
+                  }
+                >
+                  {t}
+                </button>
+              );
+            })}
+          </FilterRow>
+
+          {/* Curated sources row */}
+          {curatedSources.length > 0 && (
+            <FilterRow
+              label="Curated sources"
+              labelClassName={
+                "transition cursor-pointer " +
+                (curatedActive
+                  ? "bg-brand-purple text-white"
+                  : "bg-brand-purple/10 text-brand-purple hover:bg-brand-purple/20")
+              }
+              onLabelClick={() => applyGroupFilter(curatedSources.map((s) => s.id))}
+              labelTitle="Show news from all curated sources"
+            >
+              {curatedSources.map((s) => (
+                <SourcePill
+                  key={s.id}
+                  source={s}
+                  active={activeSources.has(s.id)}
+                  canRemove={isSignedIn && (s as any).user_id === user?.id}
+                  onToggle={() => toggleSetItem(activeSources, s.id, setActiveSources)}
+                  onRemove={async () => {
+                    if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
+                    try {
+                      await removeFn({ data: { id: s.id } });
+                      toast.success(`Removed "${s.name}"`);
+                      const n = new Set(activeSources);
+                      n.delete(s.id);
+                      setActiveSources(n);
+                      invalidate();
+                    } catch (e: any) {
+                      toast.error(e.message ?? "Failed to remove source");
+                    }
+                  }}
+                />
+              ))}
+            </FilterRow>
+          )}
+
+          {/* Established sources row */}
+          {establishedSources.length > 0 && (
+            <FilterRow
+              label="Established sources"
+              labelClassName={
+                "transition cursor-pointer " +
+                (establishedActive
+                  ? "bg-brand-turquoise text-white"
+                  : "bg-brand-turquoise/10 text-brand-turquoise hover:bg-brand-turquoise/20")
+              }
+              onLabelClick={() => applyGroupFilter(establishedSources.map((s) => s.id))}
+              labelTitle="Show news from all established sources"
+            >
+              {establishedSources.map((s) => (
+                <SourcePill
+                  key={s.id}
+                  source={s}
+                  active={activeSources.has(s.id)}
+                  canRemove={isSignedIn && (s as any).user_id === user?.id}
+                  onToggle={() => toggleSetItem(activeSources, s.id, setActiveSources)}
+                  onRemove={async () => {
+                    if (!confirm(`Remove "${s.name}"? Its articles will be deleted from your feed.`)) return;
+                    try {
+                      await removeFn({ data: { id: s.id } });
+                      toast.success(`Removed "${s.name}"`);
+                      const n = new Set(activeSources);
+                      n.delete(s.id);
+                      setActiveSources(n);
+                      invalidate();
+                    } catch (e: any) {
+                      toast.error(e.message ?? "Failed to remove source");
+                    }
+                  }}
+                />
+              ))}
+            </FilterRow>
+          )}
         </div>
+
 
         <section className="mt-8 grid gap-4">
           {filtered.length === 0 && (
