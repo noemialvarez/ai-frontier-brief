@@ -756,6 +756,134 @@ function ScrollToTop() {
   );
 }
 
+function FilterRow({
+  label,
+  labelClassName,
+  onLabelClick,
+  labelTitle,
+  children,
+}: {
+  label: string;
+  labelClassName?: string;
+  onLabelClick?: () => void;
+  labelTitle?: string;
+  children: React.ReactNode;
+}) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro.disconnect();
+    };
+  }, [children]);
+
+  const scrollRight = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: Math.max(200, el.clientWidth * 0.7), behavior: "smooth" });
+  };
+
+  const LabelEl = (
+    <span
+      onClick={onLabelClick}
+      title={labelTitle}
+      className={
+        "shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md select-none " +
+        (labelClassName ?? "bg-muted text-foreground")
+      }
+    >
+      {label}
+    </span>
+  );
+
+  return (
+    <div className="flex items-center gap-3">
+      {LabelEl}
+      <div className="relative flex-1 min-w-0">
+        <div
+          ref={scrollRef}
+          className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap py-0.5 pr-10"
+        >
+          {children}
+        </div>
+        {/* Right fade */}
+        <div
+          className={
+            "pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-card via-card/80 to-transparent transition-opacity " +
+            (canScrollRight ? "opacity-100" : "opacity-0")
+          }
+        />
+        {/* Scroll-right arrow */}
+        <button
+          type="button"
+          aria-label="Scroll right"
+          onClick={scrollRight}
+          className={
+            "absolute right-0 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-6 w-6 rounded-full bg-background border shadow-sm hover:bg-muted transition-opacity " +
+            (canScrollRight ? "opacity-100" : "opacity-0 pointer-events-none")
+          }
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SourcePill({
+  source,
+  active,
+  canRemove,
+  onToggle,
+  onRemove,
+}: {
+  source: { id: string; name: string };
+  active: boolean;
+  canRemove: boolean;
+  onToggle: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <span
+      className={
+        "inline-flex items-center shrink-0 rounded-full text-[11px] border transition overflow-hidden whitespace-nowrap " +
+        (active
+          ? "bg-gradient-brand text-white border-transparent"
+          : "bg-background hover:bg-muted")
+      }
+    >
+      <button onClick={onToggle} className="px-2.5 py-1">
+        {source.name}
+      </button>
+      {canRemove && (
+        <button
+          aria-label={`Remove ${source.name}`}
+          onClick={onRemove}
+          className={
+            "px-1.5 py-1 border-l " +
+            (active
+              ? "border-white/30 hover:bg-white/10"
+              : "border-border hover:bg-destructive/10 hover:text-destructive")
+          }
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </span>
+  );
+}
+
 
 function AddSourceDialog({
   open,
