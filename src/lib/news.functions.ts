@@ -270,7 +270,7 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
     .limit(500);
   if (articlesRes.error) throw new Error(articlesRes.error.message);
 
-  const sevenDaysAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const cutoffMs = Date.now() - 24 * 60 * 60 * 1000;
   const articles = (articlesRes.data ?? [])
     .filter((a) => !irrelevantIds.has(a.id))
     .filter((a) => isLikelyEnglish(a.title) && isLikelyEnglish(a.summary ?? ""))
@@ -280,8 +280,9 @@ export const listArticles = createServerFn({ method: "GET" }).handler(async () =
       const t = a.published_at
         ? new Date(a.published_at).getTime()
         : new Date(a.fetched_at).getTime();
-      return Number.isFinite(t) && t >= sevenDaysAgoMs;
+      return Number.isFinite(t) && t >= cutoffMs;
     });
+
 
   return { articles, sources, userId };
 });
