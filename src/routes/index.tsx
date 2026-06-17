@@ -8,16 +8,12 @@ import {
   Bookmark,
   BookmarkCheck,
   BookOpen,
-  ChevronDown,
-  ChevronUp,
   ExternalLink,
-  Filter,
   Link2,
   Loader2,
   LogIn,
   LogOut,
   Plus,
-  RefreshCw,
   ThumbsDown,
   Users,
   X,
@@ -129,7 +125,7 @@ export function Home() {
   const [contributorsOpen, setContributorsOpen] = useState(false);
   const [addPerspectiveOpen, setAddPerspectiveOpen] = useState(false);
   const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
-  const [showFilters, setShowFilters] = useState(false);
+  
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
 
@@ -256,19 +252,12 @@ export function Home() {
             )}
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Button
-              size="lg"
-              onClick={() => fetchMut.mutate()}
-              disabled={fetchMut.isPending}
-              className="bg-gradient-brand text-white hover:opacity-90 border-0 shadow-md"
+            <Link
+              to="/newsletter"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium h-11 px-8 text-brand-purple border-2 border-brand-purple hover:bg-brand-purple/10 transition-colors"
             >
-              {fetchMut.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Get most recent news
-            </Button>
+              Get the daily brief in your inbox
+            </Link>
             <Button
               variant="outline"
               size="lg"
@@ -349,27 +338,7 @@ export function Home() {
         </div>
 
         <div className="mt-5">
-          <button
-            type="button"
-            onClick={() => setShowFilters((v) => !v)}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-            aria-expanded={showFilters}
-          >
-            <Filter className="h-3.5 w-3.5" />
-            {showFilters ? "Hide filters" : "Filter by source or theme"}
-            {showFilters ? (
-              <ChevronUp className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
-            {(activeSources.size > 0 || activeThemes.size > 0) && (
-              <Badge variant="secondary" className="ml-1 text-[10px]">
-                {activeSources.size + activeThemes.size} active
-              </Badge>
-            )}
-          </button>
-          {showFilters && (
-            <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs uppercase tracking-wide font-semibold text-brand-purple mr-1">
                   Themes
@@ -444,7 +413,6 @@ export function Home() {
                 })}
               </div>
             </div>
-          )}
         </div>
 
         <section className="mt-8 grid gap-4">
@@ -453,7 +421,7 @@ export function Home() {
               <CardContent className="py-12 text-center">
                 <p className="text-muted-foreground">
                   {data.articles.length === 0
-                    ? "No articles yet. Click ‘Get most recent news’ to compile your first brief."
+                    ? "No articles in the last 12 hours. Check back soon for fresh briefs."
                     : "No articles match the current filters."}
                 </p>
               </CardContent>
