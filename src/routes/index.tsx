@@ -327,7 +327,9 @@ export function Home() {
               <Plus className="mr-2 h-4 w-4" /> Add Research & Perspectives from Influential AI Voices
             </Button>
           </div>
+          <NewsletterSignup />
         </div>
+
       </header>
 
 
