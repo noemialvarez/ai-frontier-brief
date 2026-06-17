@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PerspectivesRouteImport } from './routes/perspectives'
+import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 
 const PerspectivesRoute = PerspectivesRouteImport.update({
   id: '/perspectives',
   path: '/perspectives',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsletterRoute = NewsletterRouteImport.update({
+  id: '/newsletter',
+  path: '/newsletter',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/newsletter': typeof NewsletterRoute
   '/perspectives': typeof PerspectivesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/newsletter': typeof NewsletterRoute
   '/perspectives': typeof PerspectivesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/newsletter': typeof NewsletterRoute
   '/perspectives': typeof PerspectivesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/perspectives'
+  fullPaths: '/' | '/auth' | '/newsletter' | '/perspectives'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/perspectives'
-  id: '__root__' | '/' | '/auth' | '/perspectives'
+  to: '/' | '/auth' | '/newsletter' | '/perspectives'
+  id: '__root__' | '/' | '/auth' | '/newsletter' | '/perspectives'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  NewsletterRoute: typeof NewsletterRoute
   PerspectivesRoute: typeof PerspectivesRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/perspectives'
       fullPath: '/perspectives'
       preLoaderRoute: typeof PerspectivesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/newsletter': {
+      id: '/newsletter'
+      path: '/newsletter'
+      fullPath: '/newsletter'
+      preLoaderRoute: typeof NewsletterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  NewsletterRoute: NewsletterRoute,
   PerspectivesRoute: PerspectivesRoute,
 }
 export const routeTree = rootRouteImport
