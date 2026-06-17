@@ -125,7 +125,7 @@ export function Home() {
   const [contributorsOpen, setContributorsOpen] = useState(false);
   const [addPerspectiveOpen, setAddPerspectiveOpen] = useState(false);
   const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
-  const [showFilters, setShowFilters] = useState(false);
+  
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["articles"] });
 
