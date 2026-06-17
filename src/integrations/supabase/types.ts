@@ -70,6 +70,36 @@ export type Database = {
           },
         ]
       }
+      newsletter_subscribers: {
+        Row: {
+          consented_at: string
+          created_at: string
+          email: string
+          gdpr_consent: boolean
+          id: string
+          unsubscribe_token: string
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          consented_at?: string
+          created_at?: string
+          email: string
+          gdpr_consent?: boolean
+          id?: string
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          consented_at?: string
+          created_at?: string
+          email?: string
+          gdpr_consent?: boolean
+          id?: string
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
+        }
+        Relationships: []
+      }
       sources: {
         Row: {
           created_at: string
