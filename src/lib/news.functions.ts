@@ -538,7 +538,9 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
         }));
 
       if (toInsert.length > 0) {
-        const { error: insErr } = await supabaseAdmin.from("articles").insert(toInsert);
+        const { error: insErr } = await supabaseAdmin
+          .from("articles")
+          .upsert(toInsert, { onConflict: "external_url", ignoreDuplicates: true });
         if (insErr) errors.push(`insert: ${insErr.message}`);
         else added += toInsert.length;
       }
