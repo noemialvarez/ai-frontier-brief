@@ -491,7 +491,12 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
   const urls = candidates.map((c) => c.external_url);
   const { data: existing } = await supabaseAdmin.from("articles").select("external_url").in("external_url", urls);
   const existingSet = new Set((existing ?? []).map((r) => r.external_url));
-  const fresh = candidates.filter((c) => !existingSet.has(c.external_url));
+  const seen = new Set<string>();
+  const fresh = candidates.filter((c) => {
+    if (existingSet.has(c.external_url) || seen.has(c.external_url)) return false;
+    seen.add(c.external_url);
+    return true;
+  });
   const skipped = candidates.length - fresh.length;
 
   if (fresh.length === 0) return { added: 0, skipped, errors };
@@ -533,7 +538,9 @@ export const fetchLatestNews = createServerFn({ method: "POST" }).handler(async 
         }));
 
       if (toInsert.length > 0) {
-        const { error: insErr } = await supabaseAdmin.from("articles").insert(toInsert);
+        const { error: insErr } = await supabaseAdmin
+          .from("articles")
+          .upsert(toInsert, { onConflict: "external_url", ignoreDuplicates: true });
         if (insErr) errors.push(`insert: ${insErr.message}`);
         else added += toInsert.length;
       }

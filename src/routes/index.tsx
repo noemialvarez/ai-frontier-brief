@@ -183,7 +183,14 @@ export function Home() {
     onSuccess: (r) => {
       if (r.added > 0) toast.success(`${r.added} new article${r.added === 1 ? "" : "s"} added`);
       else toast.message("You're up to date", { description: `${r.skipped} items already in your feed.` });
-      if (r.errors.length) toast.warning("Some sources failed", { description: r.errors.slice(0, 3).join("\n") });
+      if (r.errors.length) {
+        const creditIssue = r.errors.some((e) => e.includes("credit_limit_reached") || e.includes("AI gateway error"));
+        toast.warning(creditIssue ? "Summaries temporarily unavailable" : "Some sources failed", {
+          description: creditIssue
+            ? "New articles were found, but their AI summaries couldn't be created just now. Please try again in a little while."
+            : r.errors.slice(0, 3).join("\n"),
+        });
+      }
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
